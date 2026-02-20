@@ -10,10 +10,13 @@ import (
 
 // Limiting default concurrent goroutines to 5
 var MAX_CONCURRENT_WORKERS = 5
-var maxConcurrentWorkers int
-var interval int
-var running bool
+var currentWorkersCount = 0
+
 var workerMutex sync.Mutex
+
+// Flags
+var interval int
+var maxConcurrentWorkers int
 
 func main() {
 	// Accept --interval flag
@@ -37,31 +40,34 @@ func main() {
 	for range ticker.C {
 		// Lock the access to running while checking
 		workerMutex.Lock()
-		if running {
+
+		// Check if the current number of workers being used is under the maximum allowed
+		if currentWorkersCount < maxConcurrentWorkers {
+			// We still have workers to assign
+			currentWorkersCount++
+
+			go func() {
+				doSomething()
+
+				// Since we access/modify this again, we do the lock & unlock again inside goroutine
+				workerMutex.Lock()
+				currentWorkersCount--
+				workerMutex.Unlock()
+			}()
+
+			// Access to next loop should be granted, so unlocking here
+			workerMutex.Unlock()
+		} else {
 			workerMutex.Unlock()
 			fmt.Println(time.Now().Format("15:04:05"), "Skipping")
 			continue
 		}
-
-		running = true
-
-		// Access to next loop should be granted, so unlocking here
-		workerMutex.Unlock()
-
-		go func() {
-			doSomething()
-
-			// Since we access/modify this again, we do the lock & unlock again inside goroutine
-			workerMutex.Lock()
-			running = false
-			workerMutex.Unlock()
-		}()
 	}
 }
 
 func doSomething() {
 	fmt.Println(time.Now().Format("15:04:05"), "Doing")
 
-	time.Sleep(time.Duration(3) * time.Second)
+	time.Sleep(time.Duration(10) * time.Second)
 	fmt.Println("Finished")
 }
