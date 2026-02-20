@@ -34,8 +34,8 @@ func main() {
 
 	flag.Parse()
 
-	if interval <= 1 {
-		fmt.Println("Interval should atleast be 2s")
+	if interval < 1 {
+		fmt.Println("Interval should atleast be 1s")
 		os.Exit(2)
 	}
 
