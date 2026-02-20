@@ -8,6 +8,9 @@ import (
 	"time"
 )
 
+// Limiting default concurrent goroutines to 5
+var MAX_CONCURRENT_WORKERS = 5
+var maxConcurrentWorkers int
 var interval int
 var running bool
 var workerMutex sync.Mutex
@@ -15,11 +18,17 @@ var workerMutex sync.Mutex
 func main() {
 	// Accept --interval flag
 	flag.IntVar(&interval, "interval", 5, "The time interval between each schedule in seconds")
+	flag.IntVar(&maxConcurrentWorkers, "workers", MAX_CONCURRENT_WORKERS, "The maximum number of allowed concurrent goroutines")
 
 	flag.Parse()
 
 	if interval <= 1 {
 		fmt.Println("Interval should atleast be 2s")
+		os.Exit(2)
+	}
+
+	if maxConcurrentWorkers < 1 || maxConcurrentWorkers > 10 {
+		fmt.Println("Workers should be in the range of 1-10")
 		os.Exit(2)
 	}
 
