@@ -18,12 +18,19 @@ var workerMutex sync.Mutex
 
 // Flags
 var interval int
+var timeForWork int
 var maxConcurrentWorkers int
 
 func main() {
 	// Accept --interval flag
 	flag.IntVar(&interval, "interval", 5, "The time interval between each schedule in seconds")
+	flag.IntVar(&interval, "i", 5, "The time interval between each schedule in seconds")
+
+	flag.IntVar(&timeForWork, "time", 10, "The time (in seconds) taken for each job to reach completion")
+	flag.IntVar(&timeForWork, "t", 10, "The time (in seconds) taken for each job to reach completion")
+
 	flag.IntVar(&maxConcurrentWorkers, "workers", MAX_CONCURRENT_WORKERS, "The maximum number of allowed concurrent goroutines")
+	flag.IntVar(&maxConcurrentWorkers, "w", MAX_CONCURRENT_WORKERS, "The maximum number of allowed concurrent goroutines")
 
 	flag.Parse()
 
@@ -95,6 +102,6 @@ Outer:
 func doSomething() {
 	fmt.Println(time.Now().Format("15:04:05"), "Doing")
 
-	time.Sleep(time.Duration(10) * time.Second)
+	time.Sleep(time.Duration(timeForWork) * time.Second)
 	fmt.Println("Finished")
 }
