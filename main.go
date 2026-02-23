@@ -22,27 +22,7 @@ var timeForWork int
 var maxConcurrentWorkers int
 
 func main() {
-	// Accept --interval flag
-	flag.IntVar(&interval, "interval", 5, "The time interval between each schedule in seconds")
-	flag.IntVar(&interval, "i", 5, "The time interval between each schedule in seconds")
-
-	flag.IntVar(&timeForWork, "time", 10, "The time (in seconds) taken for each job to reach completion")
-	flag.IntVar(&timeForWork, "t", 10, "The time (in seconds) taken for each job to reach completion")
-
-	flag.IntVar(&maxConcurrentWorkers, "workers", MAX_CONCURRENT_WORKERS, "The maximum number of allowed concurrent goroutines")
-	flag.IntVar(&maxConcurrentWorkers, "w", MAX_CONCURRENT_WORKERS, "The maximum number of allowed concurrent goroutines")
-
-	flag.Parse()
-
-	if interval < 1 {
-		fmt.Println("Interval should atleast be 1s")
-		os.Exit(2)
-	}
-
-	if maxConcurrentWorkers < 1 || maxConcurrentWorkers > 10 {
-		fmt.Println("Workers should be in the range of 1-10")
-		os.Exit(2)
-	}
+	parseFlags()
 
 	ticker := time.NewTicker(time.Duration(interval) * time.Second)
 
@@ -104,4 +84,28 @@ func doSomething() {
 
 	time.Sleep(time.Duration(timeForWork) * time.Second)
 	fmt.Println("Finished")
+}
+
+func parseFlags() {
+	// Accept --interval flag
+	flag.IntVar(&interval, "interval", 5, "The time interval between each schedule in seconds")
+	flag.IntVar(&interval, "i", 5, "The time interval between each schedule in seconds")
+
+	flag.IntVar(&timeForWork, "time", 10, "The time (in seconds) taken for each job to reach completion")
+	flag.IntVar(&timeForWork, "t", 10, "The time (in seconds) taken for each job to reach completion")
+
+	flag.IntVar(&maxConcurrentWorkers, "workers", MAX_CONCURRENT_WORKERS, "The maximum number of allowed concurrent goroutines")
+	flag.IntVar(&maxConcurrentWorkers, "w", MAX_CONCURRENT_WORKERS, "The maximum number of allowed concurrent goroutines")
+
+	flag.Parse()
+
+	if interval < 1 {
+		fmt.Println("Interval should atleast be 1s")
+		os.Exit(2)
+	}
+
+	if maxConcurrentWorkers < 1 || maxConcurrentWorkers > 10 {
+		fmt.Println("Workers should be in the range of 1-10")
+		os.Exit(2)
+	}
 }
