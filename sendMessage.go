@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -22,34 +23,14 @@ var CHAT_ID string
 var TELEGRAM_API_BASE_URL string
 var sendMessagePath = "/sendMessage"
 
+var message string
+
 func init() {
 	godotenv.Load()
-	readEnv, readEnvErr := godotenv.Read(".env")
 
-	if readEnvErr != nil {
-		fmt.Println(readEnvErr)
-		os.Exit(2)
-	}
-
-	jsonData, marshalErr := json.Marshal(readEnv)
-
-	if marshalErr != nil {
-		fmt.Println(marshalErr)
-		os.Exit(2)
-	}
-
-	var envVars EnvVars
-
-	unmarshalErr := json.Unmarshal(jsonData, &envVars)
-
-	if unmarshalErr != nil {
-		fmt.Println(unmarshalErr)
-		os.Exit(2)
-	}
-
-	BOT_TOKEN = envVars.BotToken
-	CHAT_ID = envVars.ChatId
-	TELEGRAM_API_BASE_URL = envVars.TelegramApiBaseUrl
+	BOT_TOKEN = os.Getenv("BOT_TOKEN")
+	CHAT_ID = os.Getenv("CHAT_ID")
+	TELEGRAM_API_BASE_URL = os.Getenv("TELEGRAM_API_BASE_URL")
 }
 
 type SendMessage struct {
@@ -58,11 +39,21 @@ type SendMessage struct {
 }
 
 func SendTelegramMessage() {
+	flag.StringVar(&message, "message", "", "The message to be sent by the bot to the user.")
+	flag.StringVar(&message, "m", "", "The message to be sent by the bot to the user.")
+
+	flag.Parse()
+
+	if len(message) < 2 {
+		fmt.Println("Message needs to be atleast 2 characters...")
+		os.Exit(2)
+	}
+
 	endpoint := TELEGRAM_API_BASE_URL + BOT_TOKEN + sendMessagePath
 
 	message := SendMessage{
 		ChatId: CHAT_ID,
-		Text:   "I am the bot!",
+		Text:   message,
 	}
 
 	messageJson, marshalErr := json.Marshal(message)
