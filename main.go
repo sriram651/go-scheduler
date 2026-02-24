@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -20,15 +21,23 @@ func init() {
 	godotenv.Load()
 }
 
+// Environment variables
 var BOT_TOKEN string
 var CHAT_ID string
 var TELEGRAM_API_BASE_URL string
+
 var sendMessagePath = "/sendMessage"
 var endpoint string
 
+// Flag variables
 var message string
+var schedule string
+
+var successCronCount int
+var failureCronCount int
 
 var httpClient = &http.Client{Timeout: 5 * time.Second}
+var cronTrackingMutex sync.Mutex
 
 func main() {
 	checkAndAssignEnvVars()
@@ -36,10 +45,13 @@ func main() {
 	flag.StringVar(&message, "message", "", "The message to be sent by the bot to the user.")
 	flag.StringVar(&message, "m", "", "The message to be sent by the bot to the user.")
 
+	flag.StringVar(&schedule, "schedule", "@every 2m", "Cron schedule that controls when the reminder is sent (supports standard cron syntax and @every intervals)")
+	flag.StringVar(&schedule, "s", "@every 2m", "Cron schedule that controls when the reminder is sent (supports standard cron syntax and @every intervals)")
+
 	flag.Parse()
 
 	if len(message) < 2 {
-		fmt.Println("Message needs to be atleast 2 characters...")
+		log.Println("Message needs to be atleast 2 characters...")
 		os.Exit(2)
 	}
 
@@ -54,7 +66,7 @@ func main() {
 	interruptChannel := make(chan os.Signal, 1)
 	signal.Notify(interruptChannel, syscall.SIGINT, syscall.SIGTERM)
 
-	c.AddFunc("@every 2m", func() {
+	c.AddFunc(schedule, func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 		defer cancel()
@@ -62,17 +74,27 @@ func main() {
 		sendMessageError := tc.Send(ctx, message)
 
 		if sendMessageError != nil {
+			cronTrackingMutex.Lock()
+			failureCronCount++
+			cronTrackingMutex.Unlock()
 			log.Println(sendMessageError)
+
+			return
 		}
+
+		cronTrackingMutex.Lock()
+		successCronCount++
+		cronTrackingMutex.Unlock()
 	})
 
+	log.Println("✅ Starting cron service...")
 	c.Start()
 
-	notified := <-interruptChannel
-
-	fmt.Print("\nStopping cron scheduling with ", notified, " signal...\n")
+	<-interruptChannel
 
 	<-c.Stop().Done()
+
+	fmt.Printf("\nCron reminder service shutting down. \nRuns: %d successful, %d failed.\n", successCronCount, failureCronCount)
 }
 
 func checkAndAssignEnvVars() {
