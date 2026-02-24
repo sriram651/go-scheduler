@@ -8,9 +8,12 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/robfig/cron/v3"
 )
 
 func init() {
@@ -40,21 +43,36 @@ func main() {
 		os.Exit(2)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-
-	defer cancel()
-
 	tc := &TelegramClient{
 		chatId:   CHAT_ID,
 		endpoint: endpoint,
 		client:   httpClient,
 	}
 
-	sendMessageError := tc.Send(ctx, message)
+	c := cron.New()
 
-	if sendMessageError != nil {
-		log.Println(sendMessageError)
-	}
+	interruptChannel := make(chan os.Signal, 1)
+	signal.Notify(interruptChannel, syscall.SIGINT, syscall.SIGTERM)
+
+	c.AddFunc("@every 2m", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
+		defer cancel()
+
+		sendMessageError := tc.Send(ctx, message)
+
+		if sendMessageError != nil {
+			log.Println(sendMessageError)
+		}
+	})
+
+	c.Start()
+
+	notified := <-interruptChannel
+
+	fmt.Print("\nStopping cron scheduling with ", notified, " signal...\n")
+
+	<-c.Stop().Done()
 }
 
 func checkAndAssignEnvVars() {
