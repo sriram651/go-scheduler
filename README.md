@@ -1,117 +1,158 @@
-# Go Interval Scheduler (v1)
+# Go Cron Telegram Reminder Service
 
-A lifecycle-aware, interval-based job scheduler written in Go.
+A lightweight, cron-driven reminder daemon written in Go that sends
+scheduled messages via Telegram.
 
-This project demonstrates bounded concurrency, race-free shared state management, and graceful shutdown handling for long-running services.
+This project evolved from an interval-based scheduler into a
+production-shaped, deployable reminder service with proper lifecycle
+management.
 
----
+------------------------------------------------------------------------
+
+## Overview
+
+This service:
+
+-   Runs on a configurable cron schedule
+-   Sends messages using the Telegram Bot API
+-   Uses per-execution timeouts via `context`
+-   Gracefully shuts down on `SIGINT` / `SIGTERM`
+-   Tracks successful and failed executions
+-   Waits for in-flight jobs before exiting
+
+It is designed to run as a long-lived background service.
+
+------------------------------------------------------------------------
 
 ## Features
 
-* Interval-based execution using `time.Ticker`
-* Configurable worker concurrency limit
-* Skip-on-saturation policy (no backlog accumulation)
-* Graceful shutdown on `SIGINT` / `SIGTERM`
-* Waits for in-flight workers before exiting
-* Race-free shared state (validated with `-race`)
+-   Cron-based scheduling (via `robfig/cron`)
+-   Configurable schedule using flags
+-   Encapsulated `TelegramClient` abstraction
+-   Context-aware HTTP requests with timeout
+-   Graceful shutdown with execution draining
+-   Mutex-protected success/failure tracking
+-   Clean service lifecycle design
 
----
+------------------------------------------------------------------------
 
-## How It Works
+## Environment Variables
 
-On every interval tick:
+Create a `.env` file (excluded via `.gitignore`):
 
-* If `currentWorkersCount < maxConcurrentWorkers`
+    BOT_TOKEN=123456:ABCDEF...
+    CHAT_ID=123456789
+    TELEGRAM_API_BASE_URL=https://api.telegram.org/bot
 
-  * Launch a new worker goroutine
-* Else
+Or export them manually:
 
-  * Skip execution
+    export BOT_TOKEN=...
+    export CHAT_ID=...
+    export TELEGRAM_API_BASE_URL=https://api.telegram.org/bot
 
-On shutdown:
+------------------------------------------------------------------------
 
-1. Stop accepting new ticks
-2. Wait for active workers to finish
-3. Exit cleanly
+## Build
 
-The scheduler never queues jobs. When saturated, it skips.
+    go build -o go-scheduler
 
----
+------------------------------------------------------------------------
 
-## Usage
+## Run
 
-Build:
-
-```
-go build -o scheduler
-```
-
-Run:
-
-```
-./scheduler --interval 5 --time 10 --workers 3
-```
+    ./go-scheduler --message "Pay rent" --schedule "@every 1m"
 
 ### Flags
 
-| Flag         | Alias | Description                         | Default |
-| ------------ | ----- | ----------------------------------- | ------- |
-| `--interval` | `-i`  | Interval between job runs (seconds) | 5       |
-| `--time`     | `-t`  | Simulated job duration (seconds)    | 10      |
-| `--workers`  | `-w`  | Maximum concurrent workers (1–10)   | 5       |
+  ------------------------------------------------------------------------
+  Flag                 Alias       Default             Description
+  -------------------- ----------- ------------------- -------------------
+  `--message`          `-m`        (required, min 2    Message text to
+                                  chars)              send
 
----
+  `--schedule`         `-s`        `@every 2m`         Cron expression
+                                                       defining when the
+                                                       reminder runs
+  ------------------------------------------------------------------------
 
-## Example
+------------------------------------------------------------------------
 
-```
-./scheduler -i 5 -t 10 -w 3
-```
+## Cron Syntax
 
-This runs a job every 5 seconds.
-Each job takes 10 seconds.
-Maximum 3 concurrent jobs.
-Additional ticks are skipped when saturated.
+Supports:
 
----
+-   Standard 5-field cron expressions\
+    `0 9 * * *`
+-   Interval syntax\
+    `@every 30s`, `@every 5m`
 
-## Concurrency Model
+Powered by `robfig/cron`.
 
-* Shared state protected via `sync.Mutex`
-* Worker lifecycle coordinated using `sync.WaitGroup`
-* No race conditions in shared state access
+------------------------------------------------------------------------
 
----
+## Runtime Behavior
 
-## Shutdown Behavior
+On startup:
 
-* First `Ctrl + C`: graceful shutdown
-* Stops scheduling new jobs
-* Waits for active workers
-* Exits cleanly
+-   Validates required environment variables
+-   Initializes Telegram client
+-   Starts cron scheduler
 
----
+On each scheduled execution:
 
-## Project Focus
+-   Creates a 5-second timeout context
+-   Sends message via Telegram
+-   Tracks success and failure counts
 
-This version focuses on:
+On shutdown (Ctrl + C):
 
-* Correct scheduling semantics
-* Bounded concurrency
-* Predictable saturation behavior
-* Proper service lifecycle management
+-   Stops accepting new scheduled executions
+-   Waits for in-progress jobs to complete
+-   Prints execution summary
 
-It is intentionally simple and does not include:
+Example:
 
-* Cron support
-* Persistent storage
-* Context-based cancellation
-* Observability features
+    Cron reminder service shutting down.
+    Runs: 8 successful, 0 failed.
 
----
+------------------------------------------------------------------------
 
-## Status
+## Architecture
 
-Stable interval-based scheduler.
+### TelegramClient
 
-Next planned evolution: cron-driven execution and real-world job integration.
+Encapsulates:
+
+-   Endpoint
+-   Chat ID
+-   HTTP client
+-   `Send(ctx, message)` method
+
+### Execution Model
+
+-   Cron triggers execution
+-   Each run receives its own timeout-bound context
+-   No global state leakage inside transport layer
+-   Graceful lifecycle handling using `c.Stop().Done()`
+
+------------------------------------------------------------------------
+
+## Current Scope (v0.2)
+
+-   Single reminder
+-   Single user
+-   No persistence
+-   No retry policy
+-   No multi-job configuration
+
+Designed intentionally minimal before deployment.
+
+------------------------------------------------------------------------
+
+## Next Steps
+
+-   VPS deployment
+-   Retry logic for transient failures
+-   Multi-reminder support
+-   Dockerization
+-   Observability improvements
