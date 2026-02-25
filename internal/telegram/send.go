@@ -1,4 +1,4 @@
-package main
+package telegram
 
 import (
 	"bytes"
@@ -11,14 +11,14 @@ import (
 	"strings"
 )
 
-type SendMessage struct {
+type sendMessage struct {
 	ChatId string `json:"chat_id"`
 	Text   string `json:"text"`
 }
 
-func (tc *TelegramClient) Send(ctx context.Context, text string) error {
-	message := SendMessage{
-		ChatId: tc.chatId,
+func (c *Client) Send(ctx context.Context, text string) error {
+	message := sendMessage{
+		ChatId: c.chatId,
 		Text:   text,
 	}
 
@@ -30,7 +30,7 @@ func (tc *TelegramClient) Send(ctx context.Context, text string) error {
 
 	sendMessageBody := bytes.NewBuffer(messageJson)
 
-	httpRequest, requestErr := http.NewRequestWithContext(ctx, http.MethodPost, tc.endpoint, sendMessageBody)
+	httpRequest, requestErr := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, sendMessageBody)
 
 	if requestErr != nil {
 		return requestErr
@@ -38,7 +38,7 @@ func (tc *TelegramClient) Send(ctx context.Context, text string) error {
 
 	httpRequest.Header.Set("Content-Type", "application/json")
 
-	response, responseErr := tc.client.Do(httpRequest)
+	response, responseErr := c.client.Do(httpRequest)
 
 	if responseErr != nil {
 		return responseErr

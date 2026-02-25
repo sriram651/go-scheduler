@@ -1,2 +1,6 @@
 # Env files
 .env
+!.env.example
+
+# Build output
+go-scheduler
