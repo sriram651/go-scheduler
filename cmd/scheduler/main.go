@@ -15,13 +15,14 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/robfig/cron/v3"
+	"github.com/sriram651/go-scheduler/internal/quote"
+	"github.com/sriram651/go-scheduler/internal/telegram"
 )
 
 func init() {
 	godotenv.Load()
 }
 
-// Environment variables
 var BOT_TOKEN string
 var CHAT_ID string
 var TELEGRAM_API_BASE_URL string
@@ -32,8 +33,6 @@ var sendMessagePath = "/sendMessage"
 var endpoint string
 var quoteUrl string
 
-// Flag variables
-// var message string
 var schedule string
 
 var successCronCount int
@@ -50,11 +49,7 @@ func main() {
 
 	flag.Parse()
 
-	tc := &TelegramClient{
-		chatId:   CHAT_ID,
-		endpoint: endpoint,
-		client:   httpClient,
-	}
+	tc := telegram.NewClient(CHAT_ID, endpoint, httpClient)
 
 	c := cron.New()
 
@@ -67,14 +62,11 @@ func main() {
 
 		defer cancel()
 
-		qc := &QuoteClient{
-			endpoint: quoteUrl,
-			client:   httpClient,
-		}
+		quoteClient := quote.NewClient(quoteUrl, httpClient)
 
 		var quote string
 
-		quote, quoteFetchErr := qc.GetQuote(ctx)
+		quote, quoteFetchErr := quoteClient.GetQuote(ctx)
 
 		if quoteFetchErr != nil {
 			quote = DEFAULT_QUOTE

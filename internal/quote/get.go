@@ -1,4 +1,4 @@
-package main
+package quote
 
 import (
 	"context"
@@ -9,10 +9,10 @@ import (
 	"strings"
 )
 
-func (qc *QuoteClient) GetQuote(ctx context.Context) (string, error) {
+func (c *Client) GetQuote(ctx context.Context) (string, error) {
 	var requestBody io.Reader
 
-	httpRequest, requestErr := http.NewRequestWithContext(ctx, http.MethodGet, qc.endpoint, requestBody)
+	httpRequest, requestErr := http.NewRequestWithContext(ctx, http.MethodGet, c.endpoint, requestBody)
 
 	if requestErr != nil {
 		return "", requestErr
@@ -20,7 +20,7 @@ func (qc *QuoteClient) GetQuote(ctx context.Context) (string, error) {
 
 	httpRequest.Header.Set("Content-Type", "application/json")
 
-	response, responseErr := httpClient.Do(httpRequest)
+	response, responseErr := c.client.Do(httpRequest)
 
 	if responseErr != nil {
 		return "", responseErr
