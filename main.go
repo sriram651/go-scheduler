@@ -25,12 +25,15 @@ func init() {
 var BOT_TOKEN string
 var CHAT_ID string
 var TELEGRAM_API_BASE_URL string
+var QUOTE_ENDPOINT string
+var DEFAULT_QUOTE string
 
 var sendMessagePath = "/sendMessage"
 var endpoint string
+var quoteUrl string
 
 // Flag variables
-var message string
+// var message string
 var schedule string
 
 var successCronCount int
@@ -42,18 +45,10 @@ var cronTrackingMutex sync.Mutex
 func main() {
 	checkAndAssignEnvVars()
 
-	flag.StringVar(&message, "message", "", "The message to be sent by the bot to the user.")
-	flag.StringVar(&message, "m", "", "The message to be sent by the bot to the user.")
-
 	flag.StringVar(&schedule, "schedule", "@every 2m", "Cron schedule that controls when the reminder is sent (supports standard cron syntax and @every intervals)")
 	flag.StringVar(&schedule, "s", "@every 2m", "Cron schedule that controls when the reminder is sent (supports standard cron syntax and @every intervals)")
 
 	flag.Parse()
-
-	if len(message) < 2 {
-		log.Println("Message needs to be atleast 2 characters...")
-		os.Exit(2)
-	}
 
 	tc := &TelegramClient{
 		chatId:   CHAT_ID,
@@ -67,11 +62,28 @@ func main() {
 	signal.Notify(interruptChannel, syscall.SIGINT, syscall.SIGTERM)
 
 	c.AddFunc(schedule, func() {
+
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 		defer cancel()
 
-		sendMessageError := tc.Send(ctx, message)
+		qc := &QuoteClient{
+			endpoint: quoteUrl,
+			client:   httpClient,
+		}
+
+		var quote string
+
+		quote, quoteFetchErr := qc.GetQuote(ctx)
+
+		if quoteFetchErr != nil {
+			quote = DEFAULT_QUOTE
+			log.Println(quoteFetchErr)
+		} else if quote == "" {
+			quote = DEFAULT_QUOTE
+		}
+
+		sendMessageError := tc.Send(ctx, quote)
 
 		if sendMessageError != nil {
 			cronTrackingMutex.Lock()
@@ -101,10 +113,20 @@ func checkAndAssignEnvVars() {
 	BOT_TOKEN = os.Getenv("BOT_TOKEN")
 	CHAT_ID = os.Getenv("CHAT_ID")
 
+	QUOTE_ENDPOINT = os.Getenv("QUOTE_API_URL")
+
+	DEFAULT_QUOTE = os.Getenv("DEFAULT_QUOTE")
+
 	if BOT_TOKEN == "" || CHAT_ID == "" {
 		log.Println("Env vars BOT_TOKEN & CHAT_ID are required!")
 		os.Exit(2)
 	}
+
+	if QUOTE_ENDPOINT == "" {
+		log.Println("Env var QUOTE_ENDPOINT is required!")
+		os.Exit(2)
+	}
+
 	TELEGRAM_API_BASE_URL = os.Getenv("TELEGRAM_API_BASE_URL")
 
 	parsedUrl, urlParseErr := url.Parse(TELEGRAM_API_BASE_URL + BOT_TOKEN + sendMessagePath)
@@ -115,4 +137,13 @@ func checkAndAssignEnvVars() {
 	}
 
 	endpoint = parsedUrl.String()
+
+	parsedQuoteUrl, quoteUrlParseErr := url.Parse(QUOTE_ENDPOINT)
+
+	if quoteUrlParseErr != nil {
+		fmt.Println("Invalid URL: ", quoteUrlParseErr)
+		os.Exit(2)
+	}
+
+	quoteUrl = parsedQuoteUrl.String()
 }
