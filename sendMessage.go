@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -70,9 +71,9 @@ func (tc *TelegramClient) Send(ctx context.Context, text string) error {
 		return decodeErr
 	}
 
-	result := "\nYou sent " + raw.Result.Chat.FirstName + " a message: \"" + raw.Result.Text + "\"\n"
+	result := "You sent " + raw.Result.Chat.FirstName + " a message: \"" + raw.Result.Text + "\"\n"
 
-	fmt.Println(result)
+	log.Println(result)
 
 	return nil
 }
