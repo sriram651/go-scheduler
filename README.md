@@ -31,12 +31,33 @@ It is designed to run as a long-lived background service.
 
 -   Cron-based scheduling (via `robfig/cron`)
 -   Configurable schedule using flags
--   Encapsulated `TelegramClient` abstraction
--   Encapsulated `QuoteClient` abstraction with fallback support
+-   Encapsulated `telegram.Client` abstraction
+-   Encapsulated `quote.Client` abstraction with fallback support
 -   Context-aware HTTP requests with timeout
 -   Graceful shutdown with execution draining
 -   Mutex-protected success/failure tracking
 -   Clean service lifecycle design
+
+------------------------------------------------------------------------
+
+## Project Structure
+
+    go-scheduler/
+    ├── cmd/
+    │   └── scheduler/
+    │       └── main.go          # Entry point — wiring, flags, cron lifecycle
+    ├── internal/
+    │   ├── quote/
+    │   │   ├── client.go        # QuoteClient struct and constructor
+    │   │   └── get.go           # GetQuote(ctx) method
+    │   └── telegram/
+    │       ├── client.go        # TelegramClient struct and constructor
+    │       └── send.go          # Send(ctx, message) method
+    ├── .env                     # Local secrets — never committed
+    ├── .env.example             # Safe template to commit
+    ├── DEPLOY.md                # VPS deployment guide
+    ├── go.mod
+    └── go.sum
 
 ------------------------------------------------------------------------
 
@@ -65,7 +86,7 @@ exits on startup if any are missing.
 
 ## Build
 
-    go build -o go-scheduler
+    go build -o go-scheduler ./cmd/scheduler/
 
 ------------------------------------------------------------------------
 
@@ -129,7 +150,7 @@ Example:
 
 ## Architecture
 
-### TelegramClient
+### `internal/telegram` — `telegram.Client`
 
 Encapsulates:
 
@@ -138,7 +159,7 @@ Encapsulates:
 -   HTTP client
 -   `Send(ctx, message)` method
 
-### QuoteClient
+### `internal/quote` — `quote.Client`
 
 Encapsulates:
 
@@ -151,9 +172,9 @@ Encapsulates:
 
 -   Cron triggers execution
 -   Each run receives its own timeout-bound context
--   `QuoteClient` fetches the quote; falls back to `DEFAULT_QUOTE` on
+-   `quote.Client` fetches the quote; falls back to `DEFAULT_QUOTE` on
     any error
--   `TelegramClient` delivers the message
+-   `telegram.Client` delivers the message
 -   No global state leakage inside transport layer
 -   Graceful lifecycle handling using `c.Stop().Done()`
 
