@@ -1,43 +1,27 @@
 package telegram
 
-import "net/http"
+import (
+	"net/http"
+	"os"
+	"time"
+)
 
 type Client struct {
-	chatId   int64
-	endpoint string
-	client   *http.Client
+	baseUrl string
+	token   string
+	client  *http.Client
+	offset  int
 }
 
-func NewClient(chatId int64, endpoint string, httpClient *http.Client) *Client {
+func NewClient(httpClientTimeout time.Duration) *Client {
 	return &Client{
-		chatId:   chatId,
-		endpoint: endpoint,
-		client:   httpClient,
+		baseUrl: os.Getenv("TG_API_BASE_URL"),
+		token:   os.Getenv("TG_BOT_TOKEN"),
+		client:  &http.Client{Timeout: httpClientTimeout},
+		offset:  0,
 	}
 }
 
-// Updates from telegram
-type Message struct {
-	Chat struct {
-		ID        int64  `json:"id"`
-		FirstName string `json:"first_name"`
-	} `json:"chat"`
-	Text string `json:"text"`
-}
-
-type CallbackQuery struct {
-	ID      string   `json:"id"`
-	Data    string   `json:"data"`
-	Message *Message `json:"message"`
-}
-
-type UpdateStruct struct {
-	UpdateId      int            `json:"update_id"`
-	Message       *Message       `json:"message"`
-	CallbackQuery *CallbackQuery `json:"callback_query"`
-}
-
-type GetUpdatesResponse struct {
-	Ok     bool           `json:"ok"`
-	Result []UpdateStruct `json:"result"`
+func (c *Client) endpoint(path string, params string) string {
+	return c.baseUrl + c.token + path + params
 }
