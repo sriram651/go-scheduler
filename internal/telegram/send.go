@@ -11,15 +11,26 @@ import (
 	"strings"
 )
 
-type sendMessage struct {
-	ChatId string `json:"chat_id"`
-	Text   string `json:"text"`
+type SendMessage struct {
+	ChatId      int64        `json:"chat_id"`
+	Text        string       `json:"text"`
+	ReplyMarkup *ReplyMarkup `json:"reply_markup,omitempty"`
 }
 
-func (c *Client) Send(ctx context.Context, text string) error {
-	message := sendMessage{
-		ChatId: c.chatId,
-		Text:   text,
+type ReplyMarkup struct {
+	InlineKeyboard [][]InlineKeyboardButton `json:"inline_keyboard"`
+}
+
+type InlineKeyboardButton struct {
+	Text         string `json:"text"`
+	CallbackData string `json:"callback_data"`
+}
+
+func (c *Client) Send(ctx context.Context, text string, replyMarkup *ReplyMarkup) error {
+	message := SendMessage{
+		ChatId:      c.chatId,
+		Text:        text,
+		ReplyMarkup: replyMarkup,
 	}
 
 	messageJson, marshalErr := json.Marshal(message)

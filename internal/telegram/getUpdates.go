@@ -86,12 +86,22 @@ func GetUpdatesHandler() {
 
 					welcomeMessage := "Hey " + update.Message.Chat.FirstName + "!\n\nI am Daemon Bot. I send life quotes every hour. If you would love that, feel free to subscribe to me to get started."
 
+					// The Inline keyboard buttons to subscribe and unsubscribe
+					welcomeReplyMarkup := &ReplyMarkup{
+						InlineKeyboard: [][]InlineKeyboardButton{
+							{
+								{Text: "Subscribe", CallbackData: "subscribe"},
+								{Text: "Unsubscribe", CallbackData: "unsubscribe"},
+							},
+						},
+					}
+
 					sendCtx, sendCancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 					// Initiate a Welcome message
-					tc := NewClient(chatId, telegramSendMessageEndpoint, httpClient)
+					tc := NewClient(update.Message.Chat.ID, telegramSendMessageEndpoint, httpClient)
 
-					sendErr := tc.Send(sendCtx, welcomeMessage)
+					sendErr := tc.Send(sendCtx, welcomeMessage, welcomeReplyMarkup)
 
 					sendCancel()
 

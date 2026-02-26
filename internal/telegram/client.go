@@ -3,12 +3,12 @@ package telegram
 import "net/http"
 
 type Client struct {
-	chatId   string
+	chatId   int64
 	endpoint string
 	client   *http.Client
 }
 
-func NewClient(chatId, endpoint string, httpClient *http.Client) *Client {
+func NewClient(chatId int64, endpoint string, httpClient *http.Client) *Client {
 	return &Client{
 		chatId:   chatId,
 		endpoint: endpoint,
