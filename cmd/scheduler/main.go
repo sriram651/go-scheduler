@@ -51,6 +51,9 @@ func main() {
 
 	tc := telegram.NewClient(CHAT_ID, endpoint, httpClient)
 
+	// Start a go-routine to handle the subscriptions to user
+	go telegram.GetUpdatesHandler()
+
 	c := cron.New()
 
 	interruptChannel := make(chan os.Signal, 1)

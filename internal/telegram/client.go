@@ -15,3 +15,21 @@ func NewClient(chatId, endpoint string, httpClient *http.Client) *Client {
 		client:   httpClient,
 	}
 }
+
+// Updates from telegram
+type Message struct {
+	Chat struct {
+		ID int64 `json:"id"`
+	} `json:"chat"`
+	Text string `json:"text"`
+}
+
+type UpdateStruct struct {
+	UpdateId int      `json:"update_id"`
+	Message  *Message `json:"message"`
+}
+
+type GetUpdatesResponse struct {
+	Ok     bool           `json:"ok"`
+	Result []UpdateStruct `json:"result"`
+}
