@@ -24,9 +24,9 @@ func init() {
 	godotenv.Load()
 }
 
-var BOT_TOKEN string
-var CHAT_ID int64
-var TELEGRAM_API_BASE_URL string
+var TG_BOT_TOKEN string
+var TG_CHAT_ID int64
+var TG_API_BASE_URL string
 var QUOTE_ENDPOINT string
 var DEFAULT_QUOTE string
 
@@ -50,10 +50,10 @@ func main() {
 
 	flag.Parse()
 
-	tc := telegram.NewClient(CHAT_ID, endpoint, httpClient)
+	tc := telegram.NewClient(5 * time.Second)
 
 	// Start a go-routine to handle the subscriptions to user
-	go telegram.GetUpdatesHandler()
+	go tc.StartPolling()
 
 	c := cron.New()
 
@@ -79,7 +79,7 @@ func main() {
 			quote = DEFAULT_QUOTE
 		}
 
-		sendMessageError := tc.Send(ctx, quote, nil)
+		sendMessageError := tc.HandleSend(ctx, TG_CHAT_ID, quote, nil)
 
 		if sendMessageError != nil {
 			cronTrackingMutex.Lock()
@@ -106,13 +106,13 @@ func main() {
 }
 
 func checkAndAssignEnvVars() {
-	BOT_TOKEN = os.Getenv("BOT_TOKEN")
+	TG_BOT_TOKEN = os.Getenv("TG_BOT_TOKEN")
 
 	var chatIdEnvErr error
-	CHAT_ID, chatIdEnvErr = strconv.ParseInt(os.Getenv("CHAT_ID"), 10, 64)
+	TG_CHAT_ID, chatIdEnvErr = strconv.ParseInt(os.Getenv("TG_CHAT_ID"), 10, 64)
 
 	if chatIdEnvErr != nil {
-		log.Println("Error converting Env var CHAT_ID to int64:", chatIdEnvErr)
+		log.Println("Error converting Env var TG_CHAT_ID to int64:", chatIdEnvErr)
 		os.Exit(2)
 	}
 
@@ -120,8 +120,8 @@ func checkAndAssignEnvVars() {
 
 	DEFAULT_QUOTE = os.Getenv("DEFAULT_QUOTE")
 
-	if BOT_TOKEN == "" {
-		log.Println("Env vars BOT_TOKEN is required!")
+	if TG_BOT_TOKEN == "" {
+		log.Println("Env vars TG_BOT_TOKEN is required!")
 		os.Exit(2)
 	}
 
@@ -130,9 +130,9 @@ func checkAndAssignEnvVars() {
 		os.Exit(2)
 	}
 
-	TELEGRAM_API_BASE_URL = os.Getenv("TELEGRAM_API_BASE_URL")
+	TG_API_BASE_URL = os.Getenv("TG_API_BASE_URL")
 
-	parsedUrl, urlParseErr := url.Parse(TELEGRAM_API_BASE_URL + BOT_TOKEN + sendMessagePath)
+	parsedUrl, urlParseErr := url.Parse(TG_API_BASE_URL + TG_BOT_TOKEN + sendMessagePath)
 
 	if urlParseErr != nil {
 		fmt.Println("Invalid URL: ", urlParseErr)
