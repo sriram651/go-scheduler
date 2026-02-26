@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -81,10 +80,6 @@ func (c *Client) Send(ctx context.Context, text string, replyMarkup *ReplyMarkup
 	if decodeErr != nil {
 		return decodeErr
 	}
-
-	result := "You sent " + raw.Result.Chat.FirstName + " a message: \"" + raw.Result.Text + "\"\n"
-
-	log.Println(result)
 
 	return nil
 }
