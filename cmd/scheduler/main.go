@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -24,7 +25,7 @@ func init() {
 }
 
 var BOT_TOKEN string
-var CHAT_ID string
+var CHAT_ID int64
 var TELEGRAM_API_BASE_URL string
 var QUOTE_ENDPOINT string
 var DEFAULT_QUOTE string
@@ -78,7 +79,7 @@ func main() {
 			quote = DEFAULT_QUOTE
 		}
 
-		sendMessageError := tc.Send(ctx, quote)
+		sendMessageError := tc.Send(ctx, quote, nil)
 
 		if sendMessageError != nil {
 			cronTrackingMutex.Lock()
@@ -106,14 +107,21 @@ func main() {
 
 func checkAndAssignEnvVars() {
 	BOT_TOKEN = os.Getenv("BOT_TOKEN")
-	CHAT_ID = os.Getenv("CHAT_ID")
+
+	var chatIdEnvErr error
+	CHAT_ID, chatIdEnvErr = strconv.ParseInt(os.Getenv("CHAT_ID"), 10, 64)
+
+	if chatIdEnvErr != nil {
+		log.Println("Error converting Env var CHAT_ID to int64:", chatIdEnvErr)
+		os.Exit(2)
+	}
 
 	QUOTE_ENDPOINT = os.Getenv("QUOTE_API_URL")
 
 	DEFAULT_QUOTE = os.Getenv("DEFAULT_QUOTE")
 
-	if BOT_TOKEN == "" || CHAT_ID == "" {
-		log.Println("Env vars BOT_TOKEN & CHAT_ID are required!")
+	if BOT_TOKEN == "" {
+		log.Println("Env vars BOT_TOKEN is required!")
 		os.Exit(2)
 	}
 
