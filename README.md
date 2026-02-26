@@ -65,21 +65,21 @@ It is designed to run as a long-lived background service.
 
 Create a `.env` file (excluded via `.gitignore`):
 
-    BOT_TOKEN=123456:ABCDEF...
-    CHAT_ID=123456789
-    TELEGRAM_API_BASE_URL=https://api.telegram.org/bot
+    TG_BOT_TOKEN=123456:ABCDEF...
+    TG_CHAT_ID=123456789
+    TG_API_BASE_URL=https://api.telegram.org/bot
     QUOTE_API_URL=https://your-quote-api.com/api/random
     DEFAULT_QUOTE=Keep pushing forward, no matter what challenges you face.
 
 Or export them manually:
 
-    export BOT_TOKEN=...
-    export CHAT_ID=...
-    export TELEGRAM_API_BASE_URL=https://api.telegram.org/bot
+    export TG_BOT_TOKEN=...
+    export TG_CHAT_ID=...
+    export TG_API_BASE_URL=https://api.telegram.org/bot
     export QUOTE_API_URL=...
     export DEFAULT_QUOTE=...
 
-`BOT_TOKEN`, `CHAT_ID`, and `QUOTE_API_URL` are required. The service
+`TG_BOT_TOKEN`, `TG_CHAT_ID`, and `QUOTE_API_URL` are required. The service
 exits on startup if any are missing.
 
 ------------------------------------------------------------------------

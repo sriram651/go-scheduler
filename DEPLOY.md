@@ -80,9 +80,9 @@ ExecStart=/path/to/app/go-scheduler --schedule "@every 2m"
 Restart=on-failure
 RestartSec=10
 
-Environment="BOT_TOKEN=your_bot_token_here"
-Environment="CHAT_ID=your_chat_id_here"
-Environment="TELEGRAM_API_BASE_URL=https://api.telegram.org/bot"
+Environment="TG_BOT_TOKEN=your_tg_bot_token_here"
+Environment="TG_CHAT_ID=your_tg_chat_id_here"
+Environment="TG_API_BASE_URL=https://api.telegram.org/bot"
 Environment="QUOTE_API_URL=https://your-quote-api.com/api/random"
 Environment="DEFAULT_QUOTE=Your fallback quote here."
 
@@ -124,11 +124,11 @@ To change a secret or config value:
 
 ## Summary
 
-| Action              | Command                                          |
-|---------------------|--------------------------------------------------|
-| Build for Linux     | `GOOS=linux GOARCH=amd64 go build -o go-scheduler ./cmd/scheduler/` |
-| Push binary         | `scp go-scheduler user@vps-ip:/path/to/app/`    |
-| Restart service     | `sudo systemctl restart go-scheduler`            |
-| Check status        | `sudo systemctl status go-scheduler`             |
-| Tail logs           | `sudo journalctl -u go-scheduler -f`             |
-| Edit env vars       | `sudo nano /etc/systemd/system/go-scheduler.service` |
+| Action          | Command                                                             |
+| --------------- | ------------------------------------------------------------------- |
+| Build for Linux | `GOOS=linux GOARCH=amd64 go build -o go-scheduler ./cmd/scheduler/` |
+| Push binary     | `scp go-scheduler user@vps-ip:/path/to/app/`                        |
+| Restart service | `sudo systemctl restart go-scheduler`                               |
+| Check status    | `sudo systemctl status go-scheduler`                                |
+| Tail logs       | `sudo journalctl -u go-scheduler -f`                                |
+| Edit env vars   | `sudo nano /etc/systemd/system/go-scheduler.service`                |
