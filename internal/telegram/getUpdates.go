@@ -24,9 +24,12 @@ var offset = 0
 func GetUpdatesHandler() {
 	telegramBaseUrl := os.Getenv("TELEGRAM_API_BASE_URL")
 	telegramBotToken := os.Getenv("BOT_TOKEN")
+	telegramSendMessagePath := "/sendMessage"
 	telegramGetUpdatesPath := "/getUpdates"
 
-	httpClient := http.Client{Timeout: 70 * time.Second}
+	telegramSendMessageEndpoint := telegramBaseUrl + telegramBotToken + telegramSendMessagePath
+
+	httpClient := &http.Client{Timeout: 70 * time.Second}
 
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 65*time.Second)
@@ -74,11 +77,27 @@ func GetUpdatesHandler() {
 		for _, update := range getUpdatesResponse.Result {
 			if update.Message != nil {
 				message := update.Message.Text
-				userId := "tg-user-" + strconv.FormatInt(update.Message.Chat.ID, 10)
+				chatId := strconv.FormatInt(update.Message.Chat.ID, 10)
+				userId := "tg-user-" + chatId
 
 				// Subscribing to a new user
 				if message == "/start" {
 					log.Println("New user subscribed -", userId)
+
+					welcomeMessage := "Hey " + update.Message.Chat.FirstName + "!\n\nI am Daemon Bot. I send life quotes every hour. If you would love that, feel free to subscribe to me to get started."
+
+					sendCtx, sendCancel := context.WithTimeout(context.Background(), 5*time.Second)
+
+					// Initiate a Welcome message
+					tc := NewClient(chatId, telegramSendMessageEndpoint, httpClient)
+
+					sendErr := tc.Send(sendCtx, welcomeMessage)
+
+					sendCancel()
+
+					if sendErr != nil {
+						log.Println(sendErr)
+					}
 				}
 			}
 
