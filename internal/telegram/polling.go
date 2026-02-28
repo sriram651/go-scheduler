@@ -17,7 +17,7 @@ func (c *Client) StartPolling(ctx context.Context) {
 
 		for _, u := range updates {
 			c.routeUpdate(u)
-			c.offset = u.UpdateId + 1
+			c.offset = u.UpdateID + 1
 		}
 	}
 }

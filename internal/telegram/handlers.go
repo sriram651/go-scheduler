@@ -73,11 +73,11 @@ func (c *Client) answerCallback(cbId string) {
 	defer callbackCancel()
 
 	type AnswerCallbackBody struct {
-		CallbackQueryId string `json:"callback_query_id"`
+		CallbackQueryID string `json:"callback_query_id"`
 	}
 
 	answerCallbackBody := AnswerCallbackBody{
-		CallbackQueryId: cbId,
+		CallbackQueryID: cbId,
 	}
 
 	answerCallbackBodyJson, marshalErr := json.Marshal(answerCallbackBody)
@@ -128,7 +128,7 @@ func (c *Client) replySubscription(subscribed bool, chatId int64) {
 
 func (c *Client) HandleSend(ctx context.Context, chatId int64, text string, replyMarkup *ReplyMarkup) error {
 	message := SendMessage{
-		ChatId:      chatId,
+		ChatID:      chatId,
 		Text:        text,
 		ReplyMarkup: replyMarkup,
 	}

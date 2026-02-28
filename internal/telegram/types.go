@@ -15,7 +15,7 @@ type CallbackQuery struct {
 }
 
 type Update struct {
-	UpdateId      int            `json:"update_id"`
+	UpdateID      int            `json:"update_id"`
 	Message       *Message       `json:"message"`
 	CallbackQuery *CallbackQuery `json:"callback_query"`
 }
@@ -27,7 +27,7 @@ type GetUpdatesResponse struct {
 
 // Send message
 type SendMessage struct {
-	ChatId      int64        `json:"chat_id"`
+	ChatID      int64        `json:"chat_id"`
 	Text        string       `json:"text"`
 	ReplyMarkup *ReplyMarkup `json:"reply_markup,omitempty"`
 }
