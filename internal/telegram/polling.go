@@ -10,10 +10,10 @@ import (
 	"time"
 )
 
-func (c *Client) StartPolling() {
+func (c *Client) StartPolling(ctx context.Context) {
 	// Pure polling logic only
 	for {
-		updates := c.getUpdates()
+		updates := c.getUpdates(ctx)
 
 		for _, u := range updates {
 			c.routeUpdate(u)
@@ -22,11 +22,11 @@ func (c *Client) StartPolling() {
 	}
 }
 
-func (c *Client) getUpdates() []Update {
+func (c *Client) getUpdates(parentCtx context.Context) []Update {
 	params := "?offset=" + strconv.Itoa(c.offset)
 	getUpdatesEndpoint := c.endpoint("/getUpdates", params)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 65*time.Second)
+	ctx, cancel := context.WithTimeout(parentCtx, 65*time.Second)
 
 	defer cancel()
 

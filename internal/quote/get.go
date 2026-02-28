@@ -12,7 +12,7 @@ import (
 func (c *Client) GetQuote(ctx context.Context) (string, error) {
 	var requestBody io.Reader
 
-	httpRequest, requestErr := http.NewRequestWithContext(ctx, http.MethodGet, c.endpoint, requestBody)
+	httpRequest, requestErr := http.NewRequestWithContext(ctx, http.MethodGet, c.QuoteBaseURL, requestBody)
 
 	if requestErr != nil {
 		return "", requestErr
@@ -20,7 +20,7 @@ func (c *Client) GetQuote(ctx context.Context) (string, error) {
 
 	httpRequest.Header.Set("Content-Type", "application/json")
 
-	response, responseErr := c.client.Do(httpRequest)
+	response, responseErr := c.Client.Do(httpRequest)
 
 	if responseErr != nil {
 		return "", responseErr
