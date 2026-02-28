@@ -16,7 +16,7 @@ func (c *Client) StartPolling(ctx context.Context) {
 		updates := c.getUpdates(ctx)
 
 		for _, u := range updates {
-			c.routeUpdate(u)
+			c.routeUpdate(ctx, u)
 			c.offset = u.UpdateID + 1
 		}
 	}
@@ -69,10 +69,10 @@ func (c *Client) getUpdates(parentCtx context.Context) []Update {
 	return updatesRes.Result
 }
 
-func (c *Client) routeUpdate(u Update) {
+func (c *Client) routeUpdate(ctx context.Context, u Update) {
 	if u.Message != nil {
-		c.handleMessage(u.Message)
+		c.handleMessage(ctx, u.Message)
 	} else if u.CallbackQuery != nil {
-		c.handleCallback(u.CallbackQuery)
+		c.handleCallback(ctx, u.CallbackQuery)
 	}
 }
