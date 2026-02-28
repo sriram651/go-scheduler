@@ -13,11 +13,17 @@ import (
 func (c *Client) StartPolling(ctx context.Context) {
 	// Pure polling logic only
 	for {
-		updates := c.getUpdates(ctx)
+		// Check if the Outer-context is cancelled to stop running the forever-polling
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			updates := c.getUpdates(ctx)
 
-		for _, u := range updates {
-			c.routeUpdate(ctx, u)
-			c.offset = u.UpdateID + 1
+			for _, u := range updates {
+				c.routeUpdate(ctx, u)
+				c.offset = u.UpdateID + 1
+			}
 		}
 	}
 }
