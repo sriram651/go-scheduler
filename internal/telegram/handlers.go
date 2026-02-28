@@ -24,7 +24,7 @@ func (c *Client) handleStart(m *Message) {
 	chatId := strconv.FormatInt(m.Chat.ID, 10)
 	userId := "tg-user-" + chatId
 
-	log.Println("New user subscribed -", userId)
+	log.Println("New user started -", userId)
 
 	welcomeMessage := "Hey " + m.Chat.FirstName + "!\n\nI am Daemon Bot. I send life quotes every hour. If you would love that, feel free to subscribe to me to get started."
 

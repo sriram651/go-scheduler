@@ -27,7 +27,7 @@ type GetUpdatesResponse struct {
 
 // Send message
 type SendMessage struct {
-	ChatId      int64        `json:"TG_CHAT_ID"`
+	ChatId      int64        `json:"chat_id"`
 	Text        string       `json:"text"`
 	ReplyMarkup *ReplyMarkup `json:"reply_markup,omitempty"`
 }

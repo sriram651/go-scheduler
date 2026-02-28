@@ -2,7 +2,6 @@ package telegram
 
 import (
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -13,10 +12,10 @@ type Client struct {
 	offset  int
 }
 
-func NewClient(httpClientTimeout time.Duration) *Client {
+func NewClient(baseUrl string, token string, httpClientTimeout time.Duration) *Client {
 	return &Client{
-		baseUrl: os.Getenv("TG_API_BASE_URL"),
-		token:   os.Getenv("TG_BOT_TOKEN"),
+		baseUrl: baseUrl,
+		token:   token,
 		client:  &http.Client{Timeout: httpClientTimeout},
 		offset:  0,
 	}

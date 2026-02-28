@@ -1,15 +1,20 @@
 package quote
 
-import "net/http"
+import (
+	"net/http"
+	"time"
+)
 
 type Client struct {
-	endpoint string
-	client   *http.Client
+	Client       *http.Client
+	QuoteBaseURL string
+	DefaultQuote string
 }
 
-func NewClient(endpoint string, httpClient *http.Client) *Client {
+func NewClient(quotesBaseURL string, defaultQuote string) *Client {
 	return &Client{
-		endpoint: endpoint,
-		client:   httpClient,
+		Client:       &http.Client{Timeout: 5 * time.Second},
+		QuoteBaseURL: quotesBaseURL,
+		DefaultQuote: defaultQuote,
 	}
 }
