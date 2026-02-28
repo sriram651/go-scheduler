@@ -76,7 +76,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/path/to/app/go-scheduler --schedule "@every 2m"
+ExecStart=/path/to/app/go-scheduler --schedule "0 * * * *"
 Restart=on-failure
 RestartSec=10
 
