@@ -1,6 +1,7 @@
 package config
 
 import (
+	"flag"
 	"log"
 	"os"
 	"strconv"
@@ -32,13 +33,20 @@ func LoadConfig() Config {
 		log.Println(err)
 	}
 
+	var schedule string
+
+	flag.StringVar(&schedule, "schedule", "0 * * * *", "Cron schedule that controls when the reminder is sent (supports standard cron syntax and @every intervals)")
+	flag.StringVar(&schedule, "s", "0 * * * *", "Cron schedule that controls when the reminder is sent (supports standard cron syntax and @every intervals)")
+
+	flag.Parse()
+
 	return Config{
 		TelegramToken:          os.Getenv("TG_BOT_TOKEN"),
 		TelegramBaseURL:        os.Getenv("TG_API_BASE_URL"),
 		TelegramPollTimeout:    time.Second * 65,
 		TelegramGetPostTimeout: time.Second * 5,
 		QuotesBaseURL:          os.Getenv("QUOTE_API_URL"),
-		Schedule:               "0 * * * *",
+		Schedule:               schedule,
 		DefaultQuote:           os.Getenv("DEFAULT_QUOTE"),
 		QuotesChatId:           chatId,
 	}
