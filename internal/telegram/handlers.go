@@ -13,14 +13,14 @@ import (
 	"time"
 )
 
-func (c *Client) handleMessage(m *Message) {
+func (c *Client) handleMessage(ctx context.Context, m *Message) {
 	switch m.Text {
 	case "/start":
-		c.handleStart(m)
+		c.handleStart(ctx, m)
 	}
 }
 
-func (c *Client) handleStart(m *Message) {
+func (c *Client) handleStart(ctx context.Context, m *Message) {
 	chatId := strconv.FormatInt(m.Chat.ID, 10)
 	userId := "tg-user-" + chatId
 
@@ -38,7 +38,7 @@ func (c *Client) handleStart(m *Message) {
 		},
 	}
 
-	sendCtx, sendCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	sendCtx, sendCancel := context.WithTimeout(ctx, 5*time.Second)
 
 	sendErr := c.HandleSend(sendCtx, m.Chat.ID, welcomeMessage, welcomeReplyMarkup)
 
@@ -49,7 +49,7 @@ func (c *Client) handleStart(m *Message) {
 	}
 }
 
-func (c *Client) handleCallback(cb *CallbackQuery) {
+func (c *Client) handleCallback(ctx context.Context, cb *CallbackQuery) {
 	c.answerCallback(cb.ID)
 
 	if cb.Message == nil {
@@ -59,9 +59,9 @@ func (c *Client) handleCallback(cb *CallbackQuery) {
 
 	switch cb.Data {
 	case "subscribe":
-		c.replySubscription(true, cb.Message.Chat.ID)
+		c.replySubscription(ctx, true, cb.Message.Chat.ID)
 	case "unsubscribe":
-		c.replySubscription(false, cb.Message.Chat.ID)
+		c.replySubscription(ctx, false, cb.Message.Chat.ID)
 	}
 }
 
@@ -106,7 +106,7 @@ func (c *Client) answerCallback(cbId string) {
 	defer res.Body.Close()
 }
 
-func (c *Client) replySubscription(subscribed bool, chatId int64) {
+func (c *Client) replySubscription(ctx context.Context, subscribed bool, chatId int64) {
 	var answerCallbackText string
 
 	if subscribed {
@@ -115,7 +115,7 @@ func (c *Client) replySubscription(subscribed bool, chatId int64) {
 		answerCallbackText = "No problem, you can come back to subscribe whenever. \n\nI hope you have a good day!"
 	}
 
-	sendCtx, sendCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	sendCtx, sendCancel := context.WithTimeout(ctx, 5*time.Second)
 
 	sendErr := c.HandleSend(sendCtx, chatId, answerCallbackText, nil)
 
