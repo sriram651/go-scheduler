@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/robfig/cron/v3"
 )
@@ -20,7 +21,7 @@ func New(schedule string) *Scheduler {
 
 func (s *Scheduler) Start(ctx context.Context, job func()) {
 	// Start the jobs here...
-	c := cron.New()
+	c := cron.New(cron.WithLocation(time.Local))
 
 	c.AddFunc(s.Schedule, job)
 
