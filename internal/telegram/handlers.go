@@ -103,6 +103,12 @@ func (c *Client) answerCallback(ctx context.Context, cbId string) {
 		return
 	}
 
+	if res.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(res.Body)
+		log.Println("[answerCallback] Callback ID:", cbId)
+		log.Println("[answerCallback] Non-200 status code with body:", string(body))
+	}
+
 	defer res.Body.Close()
 }
 
