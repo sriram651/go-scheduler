@@ -23,6 +23,7 @@ type Config struct {
 	// Schedule        string
 }
 
+// TODO: ENV Vars validation
 func LoadConfig() Config {
 	godotenv.Load()
 
