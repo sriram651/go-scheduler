@@ -52,6 +52,11 @@ func (c *Client) handleStart(m *Message) {
 func (c *Client) handleCallback(cb *CallbackQuery) {
 	c.answerCallback(cb.ID)
 
+	if cb.Message == nil {
+		log.Println("received callback without message, id:", cb.ID)
+		return
+	}
+
 	switch cb.Data {
 	case "subscribe":
 		c.replySubscription(true, cb.Message.Chat.ID)
