@@ -11,13 +11,12 @@ import (
 )
 
 type Config struct {
-	TelegramBaseURL        string
-	TelegramToken          string
-	TelegramPollTimeout    time.Duration
-	TelegramGetPostTimeout time.Duration
-	QuotesBaseURL          string
-	DefaultQuote           string
-	Schedule               string
+	TelegramBaseURL     string
+	TelegramToken       string
+	TelegramPollTimeout time.Duration
+	QuotesBaseURL       string
+	DefaultQuote        string
+	Schedule            string
 
 	QuotesChatId int64
 	// DBPath          string
@@ -41,13 +40,12 @@ func LoadConfig() Config {
 	flag.Parse()
 
 	return Config{
-		TelegramToken:          os.Getenv("TG_BOT_TOKEN"),
-		TelegramBaseURL:        os.Getenv("TG_API_BASE_URL"),
-		TelegramPollTimeout:    time.Second * 65,
-		TelegramGetPostTimeout: time.Second * 5,
-		QuotesBaseURL:          os.Getenv("QUOTE_API_URL"),
-		Schedule:               schedule,
-		DefaultQuote:           os.Getenv("DEFAULT_QUOTE"),
-		QuotesChatId:           chatId,
+		TelegramToken:       os.Getenv("TG_BOT_TOKEN"),
+		TelegramBaseURL:     os.Getenv("TG_API_BASE_URL"),
+		TelegramPollTimeout: time.Second * 65,
+		QuotesBaseURL:       os.Getenv("QUOTE_API_URL"),
+		Schedule:            schedule,
+		DefaultQuote:        os.Getenv("DEFAULT_QUOTE"),
+		QuotesChatId:        chatId,
 	}
 }
