@@ -2,10 +2,12 @@ package broadcast
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"sync"
 	"time"
 
+	"github.com/sriram651/go-scheduler/internal/db"
 	"github.com/sriram651/go-scheduler/internal/quote"
 	"github.com/sriram651/go-scheduler/internal/telegram"
 )
@@ -13,6 +15,7 @@ import (
 type Broadcast struct {
 	Quote    *quote.Client
 	Telegram *telegram.Client
+	Database *sql.DB
 	chatId   int64
 
 	successCount           int
@@ -20,12 +23,13 @@ type Broadcast struct {
 	broadcastTrackingMutex sync.Mutex
 }
 
-func NewClient(quotesChatId int64, qc *quote.Client, tc *telegram.Client) *Broadcast {
+func NewClient(quotesChatId int64, qc *quote.Client, tc *telegram.Client, database *sql.DB) *Broadcast {
 
 	return &Broadcast{
 		chatId:   quotesChatId,
 		Quote:    qc,
 		Telegram: tc,
+		Database: database,
 	}
 }
 
@@ -58,14 +62,23 @@ func (b *Broadcast) Run(ctx context.Context) {
 		broadcastMessage = b.Quote.DefaultQuote
 	}
 
-	sendMessageError := b.Telegram.HandleSend(cronCtx, b.chatId, broadcastMessage, nil)
+	subscribedUsers, getSubscribedUsersErr := db.GetSubscribedUsers(b.Database)
 
-	if sendMessageError != nil {
-		b.finishBroadcastRun(false)
-		log.Println(sendMessageError)
-
+	if getSubscribedUsersErr != nil {
+		log.Println(getSubscribedUsersErr)
 		return
 	}
 
-	b.finishBroadcastRun(true)
+	for _, user := range subscribedUsers {
+		sendMessageError := b.Telegram.HandleSend(cronCtx, user, broadcastMessage, nil)
+
+		if sendMessageError != nil {
+			// b.finishBroadcastRun(false)
+			log.Println(sendMessageError)
+			continue
+		}
+
+		// TODO: Re-visit this
+		// b.finishBroadcastRun(true)
+	}
 }

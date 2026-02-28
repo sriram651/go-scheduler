@@ -18,6 +18,8 @@ func main() {
 
 	newApp := app.New(cfg)
 
+	defer newApp.Database.Close()
+
 	go newApp.Start(ctx)
 
 	waitForShutdown(cancel)
