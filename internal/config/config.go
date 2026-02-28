@@ -19,8 +19,7 @@ type Config struct {
 	Schedule            string
 
 	QuotesChatId int64
-	// DBPath          string
-	// Schedule        string
+	DatabaseURL  string
 }
 
 // TODO: ENV Vars validation
@@ -48,5 +47,6 @@ func LoadConfig() Config {
 		Schedule:            schedule,
 		DefaultQuote:        os.Getenv("DEFAULT_QUOTE"),
 		QuotesChatId:        chatId,
+		DatabaseURL:         os.Getenv("DATABASE_URL"),
 	}
 }
