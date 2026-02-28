@@ -50,7 +50,7 @@ func (c *Client) handleStart(ctx context.Context, m *Message) {
 }
 
 func (c *Client) handleCallback(ctx context.Context, cb *CallbackQuery) {
-	c.answerCallback(cb.ID)
+	c.answerCallback(ctx, cb.ID)
 
 	if cb.Message == nil {
 		log.Println("received callback without message, id:", cb.ID)
@@ -65,10 +65,10 @@ func (c *Client) handleCallback(ctx context.Context, cb *CallbackQuery) {
 	}
 }
 
-func (c *Client) answerCallback(cbId string) {
+func (c *Client) answerCallback(ctx context.Context, cbId string) {
 	answerCallbackEndpoint := c.endpoint("/answerCallbackQuery", "")
 
-	callbackContext, callbackCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	callbackContext, callbackCancel := context.WithTimeout(ctx, 5*time.Second)
 
 	defer callbackCancel()
 
