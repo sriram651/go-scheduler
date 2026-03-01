@@ -24,7 +24,7 @@ type Config struct {
 func LoadConfig() Config {
 	godotenv.Load()
 
-	log.Println("✅Env loaded")
+	log.Println("✅ Env loaded")
 
 	var schedule string
 
