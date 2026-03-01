@@ -33,14 +33,18 @@ func GetSubscribedUsers(pgDB *sql.DB) ([]int64, error) {
 
 	for rows.Next() {
 		var chatId int64
-		scanErr := rows.Scan(&chatId)
 
-		if scanErr != nil {
-			log.Println(scanErr)
-			continue
+		if err := rows.Scan(&chatId); err != nil {
+			log.Println(err)
+			return nil, err
 		}
 
 		chatIDs = append(chatIDs, chatId)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Println(err)
+		return nil, err
 	}
 
 	return chatIDs, nil
