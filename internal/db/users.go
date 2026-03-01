@@ -64,3 +64,24 @@ func AddNewUser(pgDB *sql.DB, user User) error {
 
 	return nil
 }
+
+func UpdateSubscription(pgDB *sql.DB, chatID int64, subscribed bool) error {
+	query := `
+		UPDATE users SET subscribed = $1 WHERE chat_id = $2
+	`
+
+	_, err := pgDB.ExecContext(context.Background(), query, subscribed, chatID)
+
+	if err != nil {
+		log.Println("Error updating user subscription:", err)
+		return err
+	}
+
+	if subscribed {
+		log.Println("User subscribed:", chatID)
+	} else {
+		log.Println("User un-subscribed:", chatID)
+	}
+
+	return nil
+}

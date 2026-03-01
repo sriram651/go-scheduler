@@ -67,8 +67,10 @@ func (c *Client) handleCallback(ctx context.Context, cb *CallbackQuery) {
 
 	switch cb.Data {
 	case "subscribe":
+		db.UpdateSubscription(c.Database, cb.Message.Chat.ID, true)
 		c.replySubscription(ctx, true, cb.Message.Chat.ID)
 	case "unsubscribe":
+		db.UpdateSubscription(c.Database, cb.Message.Chat.ID, false)
 		c.replySubscription(ctx, false, cb.Message.Chat.ID)
 	}
 }
