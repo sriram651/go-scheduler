@@ -21,6 +21,9 @@ This service:
 -   Listens for Telegram updates via long-polling
 -   Handles `/start` command with inline keyboard buttons
 -   Routes callback queries (Subscribe / Unsubscribe)
+-   Registers new users in PostgreSQL on `/start` (upsert — safe to repeat)
+-   Persists subscription state in the database
+-   Broadcasts quotes only to subscribed users
 -   Uses per-execution timeouts via `context`
 -   Gracefully shuts down on `SIGINT` / `SIGTERM`
 -   Tracks successful and failed executions
@@ -39,6 +42,8 @@ It is designed to run as a long-lived background service.
 -   Encapsulated `telegram.Client` with long-polling, message routing, and
     callback handling
 -   Encapsulated `quote.Client` abstraction with fallback support
+-   PostgreSQL-backed user registration and subscription management
+-   Broadcast targets fetched from DB — no hardcoded chat IDs
 -   Context-aware HTTP requests with timeout
 -   Graceful shutdown with execution draining
 -   Mutex-protected success/failure tracking
@@ -61,6 +66,9 @@ It is designed to run as a long-lived background service.
     │   │   └── broadcast.go     # Quote broadcast coordinator with success/failure tracking
     │   ├── config/
     │   │   └── config.go        # Config loader — env vars and CLI flags
+    │   ├── db/
+    │   │   ├── db.go            # PostgreSQL connection setup
+    │   │   └── users.go         # User registration and subscription queries
     │   ├── quote/
     │   │   ├── client.go        # QuoteClient struct and constructor
     │   │   └── get.go           # GetQuote(ctx) method
@@ -84,20 +92,20 @@ It is designed to run as a long-lived background service.
 Create a `.env` file (excluded via `.gitignore`):
 
     TG_BOT_TOKEN=123456:ABCDEF...
-    TG_CHAT_ID=123456789
     TG_API_BASE_URL=https://api.telegram.org/bot
     QUOTE_API_URL=https://your-quote-api.com/api/random
     DEFAULT_QUOTE=Keep pushing forward, no matter what challenges you face.
+    DATABASE_URL=postgres://user:password@host:5432/dbname
 
 Or export them manually:
 
     export TG_BOT_TOKEN=...
-    export TG_CHAT_ID=...
     export TG_API_BASE_URL=https://api.telegram.org/bot
     export QUOTE_API_URL=...
     export DEFAULT_QUOTE=...
+    export DATABASE_URL=...
 
-`TG_BOT_TOKEN`, `TG_CHAT_ID`, and `QUOTE_API_URL` are required. The service
+`TG_BOT_TOKEN`, `QUOTE_API_URL`, and `DATABASE_URL` are required. The service
 exits on startup if any are missing.
 
 ------------------------------------------------------------------------
@@ -142,6 +150,7 @@ Powered by `robfig/cron`. Schedules are evaluated in local time.
 On startup:
 
 -   Loads environment variables and CLI flags via `internal/config`
+-   Connects to PostgreSQL
 -   Initializes Telegram, Quote, Scheduler, and Broadcast clients
 -   Starts Telegram long-polling concurrently (65-second poll timeout)
 -   Starts cron scheduler concurrently
@@ -151,14 +160,15 @@ On each scheduled execution:
 -   Creates a 5-second timeout context
 -   Fetches a quote from the configured API
 -   Falls back to `DEFAULT_QUOTE` if the fetch fails or returns empty
--   Sends the quote via Telegram (formatted with author attribution)
+-   Fetches subscribed users from the database
+-   Sends the quote to each subscribed user via Telegram
 -   Tracks success and failure counts
 
 On Telegram message received:
 
 -   Routes to the appropriate handler
--   `/start` replies with a welcome message and inline keyboard
--   Callback queries (Subscribe / Unsubscribe) are acknowledged and handled
+-   `/start` registers the user in the database (upsert) and replies with a welcome message and inline keyboard
+-   Subscribe / Unsubscribe callbacks update the user's subscription state in the database
 
 On shutdown (Ctrl + C):
 
@@ -190,13 +200,23 @@ polling and the cron scheduler concurrently.
 Wraps `robfig/cron`. Starts the cron job and blocks until the context is
 cancelled, then drains in-flight executions before returning.
 
+### `internal/db` — database
+
+Manages PostgreSQL connection and queries:
+
+-   `Connect(dbURL)` — opens and pings the connection
+-   `AddNewUser(db, user)` — upserts a user row; updates name fields without touching subscription state
+-   `UpdateSubscription(db, chatId, subscribed)` — sets subscribed flag for a user
+-   `GetSubscribedUsers(db)` — returns chat IDs of all subscribed users
+
 ### `internal/broadcast` — `Broadcast`
 
 Coordinates a single scheduled execution:
 
 -   Fetches a quote (with timeout)
 -   Falls back to `DEFAULT_QUOTE` on any error
--   Sends the message via `telegram.Client`
+-   Fetches subscribed users from the database
+-   Sends the message to each user via `telegram.Client`
 -   Tracks success/failure counts under a mutex
 
 ### `internal/quote` — `quote.Client`
@@ -212,10 +232,11 @@ Encapsulates:
 
 Encapsulates:
 
--   Base URL, token, HTTP client
+-   Base URL, token, HTTP client, PostgreSQL reference
 -   Long-polling via `StartPolling(ctx)` — routes updates to handlers
 -   `HandleSend(ctx, chatId, text, replyMarkup)` — sends messages
 -   `handleMessage` / `handleCallback` — command and button routing
+-   `/start` triggers user upsert; Subscribe/Unsubscribe callbacks update the DB
 
 ### Execution Model
 
@@ -239,10 +260,10 @@ See [DEPLOY.md](DEPLOY.md) for the full deployment guide.
 ## Current Scope
 
 -   Single scheduled reminder
--   Single broadcast target (configured chat ID)
+-   PostgreSQL-backed user registration and subscription management
+-   Broadcast targets fetched from the database at runtime
 -   Interactive Telegram commands via long-polling (`/start`, callbacks)
 -   External quote API with fallback
--   No persistence
 -   No retry policy
 -   No multi-job configuration
 
@@ -250,7 +271,6 @@ See [DEPLOY.md](DEPLOY.md) for the full deployment guide.
 
 ## Next Steps
 
--   Persist subscriptions across restarts
 -   Retry logic for transient failures
 -   Multi-reminder support
 -   Dockerization
