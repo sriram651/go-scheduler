@@ -81,10 +81,10 @@ Restart=on-failure
 RestartSec=10
 
 Environment="TG_BOT_TOKEN=your_tg_bot_token_here"
-Environment="TG_CHAT_ID=your_tg_chat_id_here"
 Environment="TG_API_BASE_URL=https://api.telegram.org/bot"
 Environment="QUOTE_API_URL=https://your-quote-api.com/api/random"
 Environment="DEFAULT_QUOTE=Your fallback quote here."
+Environment="DATABASE_URL=postgres://user:password@host:5432/dbname"
 
 [Install]
 WantedBy=multi-user.target
