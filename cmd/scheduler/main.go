@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,7 +19,15 @@ func main() {
 
 	newApp := app.New(cfg)
 
-	defer newApp.Database.Close()
+	defer func() {
+		log.Println("❌ Closing the postgres pool...")
+
+		err := newApp.Database.Close()
+
+		if err != nil {
+			log.Println("❌ Error closing the postgres pool:", err)
+		}
+	}()
 
 	go newApp.Start(ctx)
 
