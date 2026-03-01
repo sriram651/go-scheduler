@@ -81,6 +81,8 @@ CREATE TABLE bot_config (
 INSERT INTO bot_config (key, value) VALUES ('telegram_offset', '0');
 ```
 
+> **The `INSERT` above is required.** If the `telegram_offset` row is missing, the service will log a warning at startup and continue running, but offset persistence will be silently broken — messages may replay on every restart.
+
 ### 3. Create the systemd service file
 
 On the VPS, create `/etc/systemd/system/go-scheduler.service`:

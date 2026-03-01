@@ -134,6 +134,8 @@ Before running the service, run the following in your PostgreSQL database:
 - `subscribed` defaults to `false` on insert; updated via the Subscribe / Unsubscribe inline buttons.
 - `bot_config` stores runtime state that must survive restarts. The `telegram_offset` row tracks the last processed Telegram update ID to prevent message replay.
 
+> **The `INSERT INTO bot_config` line is required.** If the `telegram_offset` row is missing, the service will log a warning at startup and continue running, but offset persistence will be silently broken — `UPDATE` with no matching row affects 0 rows. The symptom: Telegram messages may replay on every restart.
+
 ------------------------------------------------------------------------
 
 ## Build

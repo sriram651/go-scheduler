@@ -3,6 +3,8 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"log"
 	"strconv"
 )
 
@@ -24,6 +26,11 @@ func GetTelegramOffset(ctx context.Context, pgDB *sql.DB) (int64, error) {
 	offset, convErr := strconv.ParseInt(rawValue, 10, 64)
 
 	if convErr != nil {
+		if errors.Is(convErr, sql.ErrNoRows) {
+			log.Println("⚠️ [WARNING] bot_config row for telegram_offset is missing. Insert it with: INSERT INTO bot_config (key, value) VALUES ('telegram_offset', '0'); — offset persistence will not work until this is fixed.")
+			return 0, nil
+		}
+
 		return 0, convErr
 	}
 
