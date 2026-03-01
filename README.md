@@ -110,6 +110,23 @@ exits on startup if any are missing.
 
 ------------------------------------------------------------------------
 
+## Database Schema
+
+Before running the service, create the `users` table in your PostgreSQL database:
+
+    CREATE TABLE users (
+        chat_id    BIGINT      PRIMARY KEY,
+        first_name TEXT        NOT NULL,
+        username   TEXT,
+        subscribed BOOLEAN     NOT NULL DEFAULT false
+    );
+
+- `chat_id` is the Telegram chat ID — used as the primary key and the conflict target for upserts.
+- `username` is nullable — not all Telegram users have a username set.
+- `subscribed` defaults to `false` on insert; updated via the Subscribe / Unsubscribe inline buttons.
+
+------------------------------------------------------------------------
+
 ## Build
 
     go build -o go-scheduler ./cmd/scheduler/
