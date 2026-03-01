@@ -22,7 +22,7 @@ type App struct {
 func New(cfg config.Config) *App {
 	databaseClient := db.Connect(cfg.DatabaseURL)
 
-	telegramClient := telegram.NewClient(cfg.TelegramBaseURL, cfg.TelegramToken, cfg.TelegramPollTimeout)
+	telegramClient := telegram.NewClient(cfg.TelegramBaseURL, cfg.TelegramToken, cfg.TelegramPollTimeout, databaseClient)
 	schedulerClient := scheduler.New(cfg.Schedule)
 
 	quoteClient := quote.NewClient(cfg.QuotesBaseURL, cfg.DefaultQuote)

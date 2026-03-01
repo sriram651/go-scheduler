@@ -4,6 +4,7 @@ type Message struct {
 	Chat struct {
 		ID        int64  `json:"id"`
 		FirstName string `json:"first_name"`
+		UserName  string `json:"username"`
 	} `json:"chat"`
 	Text string `json:"text"`
 }
