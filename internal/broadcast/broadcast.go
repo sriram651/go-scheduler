@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"log"
-	"sync"
 	"time"
 
 	"github.com/sriram651/go-scheduler/internal/db"
@@ -16,10 +15,6 @@ type Broadcast struct {
 	Quote    *quote.Client
 	Telegram *telegram.Client
 	Database *sql.DB
-
-	successCount           int
-	failureCount           int
-	broadcastTrackingMutex sync.Mutex
 }
 
 func NewClient(qc *quote.Client, tc *telegram.Client, database *sql.DB) *Broadcast {
@@ -31,31 +26,22 @@ func NewClient(qc *quote.Client, tc *telegram.Client, database *sql.DB) *Broadca
 	}
 }
 
-// TODO: Need to re-implement this for tracking
-func (b *Broadcast) finishBroadcastRun(success bool) {
-	b.broadcastTrackingMutex.Lock()
-
-	if success {
-		b.successCount++
-	} else {
-		b.failureCount++
-	}
-
-	b.broadcastTrackingMutex.Unlock()
-}
-
 func (b *Broadcast) Run(ctx context.Context) {
+	log.Println("🚀 Cron run started")
+
+	var success, failure int
+
 	var broadcastMessage string
 
 	quoteCtx, quoteCancel := context.WithTimeout(ctx, 5*time.Second)
-
-	defer quoteCancel()
 
 	broadcastMessage, quoteFetchErr := b.Quote.GetQuote(quoteCtx)
 
 	if quoteFetchErr != nil {
 		log.Println(quoteFetchErr)
 	}
+
+	quoteCancel()
 
 	if broadcastMessage == "" || quoteFetchErr != nil {
 		broadcastMessage = b.Quote.DefaultQuote
@@ -64,7 +50,7 @@ func (b *Broadcast) Run(ctx context.Context) {
 	subscribedUsers, getSubscribedUsersErr := db.GetSubscribedUsers(b.Database)
 
 	if getSubscribedUsersErr != nil {
-		log.Println(getSubscribedUsersErr)
+		log.Println("❌ Cron failed — could not fetch subscribed users:", getSubscribedUsersErr)
 		return
 	}
 
@@ -76,8 +62,21 @@ func (b *Broadcast) Run(ctx context.Context) {
 		sendCancel()
 
 		if sendMessageError != nil {
-			log.Println(sendMessageError)
+			log.Printf("⚠️ Send to user %d failed: %s", user, sendMessageError)
+			failure++
 			continue
 		}
+
+		success++
+	}
+
+	if failure > 0 {
+		if success == 0 {
+			log.Println("❌ Cron run failed for all users - Failed:", failure)
+		} else {
+			log.Printf("⚠️ Partial success — Successful: %d, Failed: %d", success, failure)
+		}
+	} else {
+		log.Printf("✅ Cron successful — %d messages sent", success)
 	}
 }
