@@ -10,7 +10,7 @@ type User struct {
 	ChatId     int64  `json:"chat_id"`
 	FirstName  string `json:"first_name"`
 	UserName   string `json:"username,omitempty"`
-	Subscribed string `json:"subscribed"`
+	Subscribed bool   `json:"subscribed"`
 }
 
 func GetSubscribedUsers(pgDB *sql.DB) ([]int64, error) {
