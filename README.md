@@ -46,7 +46,6 @@ It is designed to run as a long-lived background service.
 -   Broadcast targets fetched from DB — no hardcoded chat IDs
 -   Context-aware HTTP requests with timeout
 -   Graceful shutdown with execution draining
--   Mutex-protected success/failure tracking
 -   Clean service lifecycle design
 
 ------------------------------------------------------------------------
@@ -234,7 +233,6 @@ Coordinates a single scheduled execution:
 -   Falls back to `DEFAULT_QUOTE` on any error
 -   Fetches subscribed users from the database
 -   Sends the message to each user via `telegram.Client`
--   Tracks success/failure counts under a mutex
 
 ### `internal/quote` — `quote.Client`
 
