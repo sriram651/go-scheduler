@@ -2,9 +2,7 @@ package config
 
 import (
 	"flag"
-	"log"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -18,19 +16,12 @@ type Config struct {
 	DefaultQuote        string
 	Schedule            string
 
-	QuotesChatId int64
-	DatabaseURL  string
+	DatabaseURL string
 }
 
 // TODO: ENV Vars validation
 func LoadConfig() Config {
 	godotenv.Load()
-
-	chatId, err := strconv.ParseInt(os.Getenv("TG_CHAT_ID"), 10, 64)
-
-	if err != nil {
-		log.Println(err)
-	}
 
 	var schedule string
 
@@ -46,7 +37,6 @@ func LoadConfig() Config {
 		QuotesBaseURL:       os.Getenv("QUOTE_API_URL"),
 		Schedule:            schedule,
 		DefaultQuote:        os.Getenv("DEFAULT_QUOTE"),
-		QuotesChatId:        chatId,
 		DatabaseURL:         os.Getenv("DATABASE_URL"),
 	}
 }
