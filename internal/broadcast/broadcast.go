@@ -31,6 +31,7 @@ func NewClient(qc *quote.Client, tc *telegram.Client, database *sql.DB) *Broadca
 	}
 }
 
+// TODO: Need to re-implement this for tracking
 func (b *Broadcast) finishBroadcastRun(success bool) {
 	b.broadcastTrackingMutex.Lock()
 
@@ -44,13 +45,13 @@ func (b *Broadcast) finishBroadcastRun(success bool) {
 }
 
 func (b *Broadcast) Run(ctx context.Context) {
-	cronCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-
-	defer cancel()
-
 	var broadcastMessage string
 
-	broadcastMessage, quoteFetchErr := b.Quote.GetQuote(cronCtx)
+	quoteCtx, quoteCancel := context.WithTimeout(ctx, 5*time.Second)
+
+	defer quoteCancel()
+
+	broadcastMessage, quoteFetchErr := b.Quote.GetQuote(quoteCtx)
 
 	if quoteFetchErr != nil {
 		log.Println(quoteFetchErr)
@@ -68,15 +69,15 @@ func (b *Broadcast) Run(ctx context.Context) {
 	}
 
 	for _, user := range subscribedUsers {
-		sendMessageError := b.Telegram.HandleSend(cronCtx, user, broadcastMessage, nil)
+		sendCtx, sendCancel := context.WithTimeout(ctx, 5*time.Second)
+
+		sendMessageError := b.Telegram.HandleSend(sendCtx, user, broadcastMessage, nil)
+
+		sendCancel()
 
 		if sendMessageError != nil {
-			// b.finishBroadcastRun(false)
 			log.Println(sendMessageError)
 			continue
 		}
-
-		// TODO: Re-visit this
-		// b.finishBroadcastRun(true)
 	}
 }
