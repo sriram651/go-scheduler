@@ -8,9 +8,10 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
+
+	"github.com/sriram651/go-scheduler/internal/db"
 )
 
 func (c *Client) handleMessage(ctx context.Context, m *Message) {
@@ -21,10 +22,17 @@ func (c *Client) handleMessage(ctx context.Context, m *Message) {
 }
 
 func (c *Client) handleStart(ctx context.Context, m *Message) {
-	chatId := strconv.FormatInt(m.Chat.ID, 10)
-	userId := "tg-user-" + chatId
+	log.Println("User started -", m.Chat.ID)
 
-	log.Println("New user started -", userId)
+	addNewUserErr := db.AddNewUser(c.Database, db.User{
+		ChatId:    m.Chat.ID,
+		FirstName: m.Chat.FirstName,
+		UserName:  m.Chat.UserName,
+	})
+
+	if addNewUserErr != nil {
+		log.Println("Error adding new user:", addNewUserErr)
+	}
 
 	welcomeMessage := "Hey " + m.Chat.FirstName + "!\n\nI am Daemon Bot. I send life quotes every hour. If you would love that, feel free to subscribe to me to get started."
 

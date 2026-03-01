@@ -1,23 +1,26 @@
 package telegram
 
 import (
+	"database/sql"
 	"net/http"
 	"time"
 )
 
 type Client struct {
-	baseUrl string
-	token   string
-	client  *http.Client
-	offset  int
+	baseUrl  string
+	token    string
+	client   *http.Client
+	offset   int
+	Database *sql.DB
 }
 
-func NewClient(baseUrl string, token string, httpClientTimeout time.Duration) *Client {
+func NewClient(baseUrl string, token string, httpClientTimeout time.Duration, database *sql.DB) *Client {
 	return &Client{
-		baseUrl: baseUrl,
-		token:   token,
-		client:  &http.Client{Timeout: httpClientTimeout},
-		offset:  0,
+		baseUrl:  baseUrl,
+		token:    token,
+		client:   &http.Client{Timeout: httpClientTimeout},
+		offset:   0,
+		Database: database,
 	}
 }
 
