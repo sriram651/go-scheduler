@@ -24,9 +24,9 @@ This service:
 -   Registers new users in PostgreSQL on `/start` (upsert — safe to repeat)
 -   Persists subscription state in the database
 -   Broadcasts quotes only to subscribed users
+-   Persists Telegram update offset to avoid message replay on restart
 -   Uses per-execution timeouts via `context`
 -   Gracefully shuts down on `SIGINT` / `SIGTERM`
--   Tracks successful and failed executions
 -   Waits for in-flight jobs before exiting
 
 It is designed to run as a long-lived background service.
@@ -44,6 +44,7 @@ It is designed to run as a long-lived background service.
 -   Encapsulated `quote.Client` abstraction with fallback support
 -   PostgreSQL-backed user registration and subscription management
 -   Broadcast targets fetched from DB — no hardcoded chat IDs
+-   Telegram update offset persisted to DB — no stale message replay on restart
 -   Context-aware HTTP requests with timeout
 -   Graceful shutdown with execution draining
 -   Clean service lifecycle design
@@ -67,7 +68,8 @@ It is designed to run as a long-lived background service.
     │   │   └── config.go        # Config loader — env vars and CLI flags
     │   ├── db/
     │   │   ├── db.go            # PostgreSQL connection setup
-    │   │   └── users.go         # User registration and subscription queries
+    │   │   ├── users.go         # User registration and subscription queries
+    │   │   └── config.go        # Bot config queries (telegram offset)
     │   ├── quote/
     │   │   ├── client.go        # QuoteClient struct and constructor
     │   │   └── get.go           # GetQuote(ctx) method
@@ -111,18 +113,26 @@ exits on startup if any are missing.
 
 ## Database Schema
 
-Before running the service, create the `users` table in your PostgreSQL database:
+Before running the service, run the following in your PostgreSQL database:
 
     CREATE TABLE users (
-        chat_id    BIGINT      PRIMARY KEY,
-        first_name TEXT        NOT NULL,
+        chat_id    BIGINT  PRIMARY KEY,
+        first_name TEXT    NOT NULL,
         username   TEXT,
-        subscribed BOOLEAN     NOT NULL DEFAULT false
+        subscribed BOOLEAN NOT NULL DEFAULT false
     );
+
+    CREATE TABLE bot_config (
+        key   TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+    );
+
+    INSERT INTO bot_config (key, value) VALUES ('telegram_offset', '0');
 
 - `chat_id` is the Telegram chat ID — used as the primary key and the conflict target for upserts.
 - `username` is nullable — not all Telegram users have a username set.
 - `subscribed` defaults to `false` on insert; updated via the Subscribe / Unsubscribe inline buttons.
+- `bot_config` stores runtime state that must survive restarts. The `telegram_offset` row tracks the last processed Telegram update ID to prevent message replay.
 
 ------------------------------------------------------------------------
 
@@ -168,6 +178,7 @@ On startup:
 -   Loads environment variables and CLI flags via `internal/config`
 -   Connects to PostgreSQL
 -   Initializes Telegram, Quote, Scheduler, and Broadcast clients
+-   Loads last saved Telegram update offset from DB
 -   Starts Telegram long-polling concurrently (65-second poll timeout)
 -   Starts cron scheduler concurrently
 
@@ -185,17 +196,12 @@ On Telegram message received:
 -   Routes to the appropriate handler
 -   `/start` registers the user in the database (upsert) and replies with a welcome message and inline keyboard
 -   Subscribe / Unsubscribe callbacks update the user's subscription state in the database
+-   Each processed update saves the new offset to DB
 
 On shutdown (Ctrl + C):
 
 -   Cancels the root context, stopping polling and scheduler
 -   Waits for in-progress cron jobs to complete
--   Prints execution summary
-
-Example:
-
-    Cron reminder service shutting down.
-    Runs: 8 successful, 0 failed.
 
 ------------------------------------------------------------------------
 
@@ -224,6 +230,8 @@ Manages PostgreSQL connection and queries:
 -   `AddNewUser(db, user)` — upserts a user row; updates name fields without touching subscription state
 -   `UpdateSubscription(db, chatId, subscribed)` — sets subscribed flag for a user
 -   `GetSubscribedUsers(db)` — returns chat IDs of all subscribed users
+-   `GetTelegramOffset(db)` — reads the last saved update offset from `bot_config`
+-   `UpdateBotConfig(db, key, value)` — upserts a key-value row in `bot_config`
 
 ### `internal/broadcast` — `Broadcast`
 
@@ -252,6 +260,7 @@ Encapsulates:
 -   `HandleSend(ctx, chatId, text, replyMarkup)` — sends messages
 -   `handleMessage` / `handleCallback` — command and button routing
 -   `/start` triggers user upsert; Subscribe/Unsubscribe callbacks update the DB
+-   Saves update offset to DB after each processed update
 
 ### Execution Model
 
@@ -277,6 +286,7 @@ See [DEPLOY.md](DEPLOY.md) for the full deployment guide.
 -   Single scheduled reminder
 -   PostgreSQL-backed user registration and subscription management
 -   Broadcast targets fetched from the database at runtime
+-   Telegram update offset persisted — no stale replays on restart
 -   Interactive Telegram commands via long-polling (`/start`, callbacks)
 -   External quote API with fallback
 -   No retry policy

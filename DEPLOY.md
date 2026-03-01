@@ -61,7 +61,27 @@ Or to see the last 50 lines without following:
     scp go-scheduler user@your-vps-ip:/path/to/app/go-scheduler
     ssh user@your-vps-ip "chmod +x /path/to/app/go-scheduler"
 
-### 2. Create the systemd service file
+### 2. Set up the database schema
+
+Connect to your PostgreSQL instance and run:
+
+```sql
+CREATE TABLE users (
+    chat_id    BIGINT  PRIMARY KEY,
+    first_name TEXT    NOT NULL,
+    username   TEXT,
+    subscribed BOOLEAN NOT NULL DEFAULT false
+);
+
+CREATE TABLE bot_config (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+INSERT INTO bot_config (key, value) VALUES ('telegram_offset', '0');
+```
+
+### 3. Create the systemd service file
 
 On the VPS, create `/etc/systemd/system/go-scheduler.service`:
 
@@ -93,13 +113,13 @@ WantedBy=multi-user.target
 > The `Environment=` lines live only on the server and are never
 > committed to git. This is the only place secrets should exist.
 
-### 3. Enable and start the service
+### 4. Enable and start the service
 
     sudo systemctl daemon-reload
     sudo systemctl enable go-scheduler
     sudo systemctl start go-scheduler
 
-### 4. Confirm it is running
+### 5. Confirm it is running
 
     sudo systemctl status go-scheduler
 
