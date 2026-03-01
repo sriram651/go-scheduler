@@ -67,10 +67,22 @@ func (c *Client) handleCallback(ctx context.Context, cb *CallbackQuery) {
 
 	switch cb.Data {
 	case "subscribe":
-		db.UpdateSubscription(ctx, c.Database, cb.Message.Chat.ID, true)
+		if err := db.UpdateSubscription(ctx, c.Database, cb.Message.Chat.ID, true); err != nil {
+			log.Println("error updating subscription status to subscribed:", err)
+
+			c.replySubscriptionChangeErr(ctx, true, cb.Message.Chat.ID)
+			return
+		}
+
 		c.replySubscription(ctx, true, cb.Message.Chat.ID)
 	case "unsubscribe":
-		db.UpdateSubscription(ctx, c.Database, cb.Message.Chat.ID, false)
+		if err := db.UpdateSubscription(ctx, c.Database, cb.Message.Chat.ID, false); err != nil {
+			log.Println("error updating subscription status to unsubscribed:", err)
+
+			c.replySubscriptionChangeErr(ctx, false, cb.Message.Chat.ID)
+			return
+		}
+
 		c.replySubscription(ctx, false, cb.Message.Chat.ID)
 	}
 }
@@ -129,6 +141,26 @@ func (c *Client) replySubscription(ctx context.Context, subscribed bool, chatId 
 		answerCallbackText = "Thank you for subscribing to my hourly quotes. You will start receiving quotes from the start of next hour(Local time). \n\nI hope you enjoy the journey."
 	} else {
 		answerCallbackText = "No problem, you can come back to subscribe whenever. \n\nI hope you have a good day!"
+	}
+
+	sendCtx, sendCancel := context.WithTimeout(ctx, 5*time.Second)
+
+	sendErr := c.HandleSend(sendCtx, chatId, answerCallbackText, nil)
+
+	sendCancel()
+
+	if sendErr != nil {
+		log.Println(sendErr)
+	}
+}
+
+func (c *Client) replySubscriptionChangeErr(ctx context.Context, subscribed bool, chatId int64) {
+	var answerCallbackText string
+
+	if subscribed {
+		answerCallbackText = "We were unable to subscribe you at the moment. Please try again later."
+	} else {
+		answerCallbackText = "We were unable to unsubscribe you at the moment. Please try again later."
 	}
 
 	sendCtx, sendCancel := context.WithTimeout(ctx, 5*time.Second)
