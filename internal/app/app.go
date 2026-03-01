@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"database/sql"
+	"log"
 
 	"github.com/sriram651/go-scheduler/internal/broadcast"
 	"github.com/sriram651/go-scheduler/internal/config"
@@ -37,6 +38,16 @@ func New(cfg config.Config) *App {
 }
 
 func (a *App) Start(ctx context.Context) {
+	// Before starting, fetch the stored telegram offset
+	telegramOffset, getOffsetErr := db.GetTelegramOffset(ctx, a.Database)
+
+	if getOffsetErr != nil {
+		log.Println("Error getting `telegram_offset` from `bot_config` table:", getOffsetErr)
+	}
+
+	// To avoid old messages replays, we store and set the offset if the scheduler restarts for some reason.
+	a.Telegram.UpdateOffset(telegramOffset)
+
 	// Start the telegram long polling
 	go a.Telegram.StartPolling(ctx)
 

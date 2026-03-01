@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/sriram651/go-scheduler/internal/db"
 )
 
 func (c *Client) StartPolling(ctx context.Context) {
@@ -22,14 +24,19 @@ func (c *Client) StartPolling(ctx context.Context) {
 
 			for _, u := range updates {
 				c.routeUpdate(ctx, u)
-				c.offset = u.UpdateID + 1
+				newOffset := int64(u.UpdateID + 1)
+				c.UpdateOffset(newOffset)
+
+				if err := db.UpdateBotConfig(ctx, c.Database, "telegram_offset", newOffset); err != nil {
+					log.Println("Error updating the telegram_offset to db:", err)
+				}
 			}
 		}
 	}
 }
 
 func (c *Client) getUpdates(parentCtx context.Context) []Update {
-	params := "?offset=" + strconv.Itoa(c.offset)
+	params := "?offset=" + strconv.Itoa(int(c.offset))
 	getUpdatesEndpoint := c.endpoint("/getUpdates", params)
 
 	ctx, cancel := context.WithTimeout(parentCtx, 65*time.Second)
