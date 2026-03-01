@@ -26,7 +26,7 @@ func New(cfg config.Config) *App {
 	schedulerClient := scheduler.New(cfg.Schedule)
 
 	quoteClient := quote.NewClient(cfg.QuotesBaseURL, cfg.DefaultQuote)
-	broadcastClient := broadcast.NewClient(cfg.QuotesChatId, quoteClient, telegramClient, databaseClient)
+	broadcastClient := broadcast.NewClient(quoteClient, telegramClient, databaseClient)
 
 	return &App{
 		Telegram:  telegramClient,

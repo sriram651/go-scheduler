@@ -16,17 +16,15 @@ type Broadcast struct {
 	Quote    *quote.Client
 	Telegram *telegram.Client
 	Database *sql.DB
-	chatId   int64
 
 	successCount           int
 	failureCount           int
 	broadcastTrackingMutex sync.Mutex
 }
 
-func NewClient(quotesChatId int64, qc *quote.Client, tc *telegram.Client, database *sql.DB) *Broadcast {
+func NewClient(qc *quote.Client, tc *telegram.Client, database *sql.DB) *Broadcast {
 
 	return &Broadcast{
-		chatId:   quotesChatId,
 		Quote:    qc,
 		Telegram: tc,
 		Database: database,
