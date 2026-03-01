@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"log"
 	"os"
 	"time"
 
@@ -22,6 +23,8 @@ type Config struct {
 // TODO: ENV Vars validation
 func LoadConfig() Config {
 	godotenv.Load()
+
+	log.Println("✅Env loaded")
 
 	var schedule string
 
