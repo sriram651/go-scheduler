@@ -24,7 +24,7 @@ func (c *Client) handleMessage(ctx context.Context, m *Message) {
 func (c *Client) handleStart(ctx context.Context, m *Message) {
 	log.Println("User started -", m.Chat.ID)
 
-	addNewUserErr := db.AddNewUser(c.Database, db.User{
+	addNewUserErr := db.AddNewUser(ctx, c.Database, db.User{
 		ChatId:    m.Chat.ID,
 		FirstName: m.Chat.FirstName,
 		UserName:  m.Chat.UserName,
@@ -67,10 +67,10 @@ func (c *Client) handleCallback(ctx context.Context, cb *CallbackQuery) {
 
 	switch cb.Data {
 	case "subscribe":
-		db.UpdateSubscription(c.Database, cb.Message.Chat.ID, true)
+		db.UpdateSubscription(ctx, c.Database, cb.Message.Chat.ID, true)
 		c.replySubscription(ctx, true, cb.Message.Chat.ID)
 	case "unsubscribe":
-		db.UpdateSubscription(c.Database, cb.Message.Chat.ID, false)
+		db.UpdateSubscription(ctx, c.Database, cb.Message.Chat.ID, false)
 		c.replySubscription(ctx, false, cb.Message.Chat.ID)
 	}
 }

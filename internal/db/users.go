@@ -46,7 +46,7 @@ func GetSubscribedUsers(pgDB *sql.DB) ([]int64, error) {
 	return chatIDs, nil
 }
 
-func AddNewUser(pgDB *sql.DB, user User) error {
+func AddNewUser(ctx context.Context, pgDB *sql.DB, user User) error {
 	query := `
 		INSERT INTO users (chat_id, first_name, username, subscribed)
 		VALUES ($1, $2, $3, false)
@@ -55,7 +55,7 @@ func AddNewUser(pgDB *sql.DB, user User) error {
 			username = $3
 	`
 
-	_, err := pgDB.ExecContext(context.Background(), query, user.ChatId, user.FirstName, user.UserName)
+	_, err := pgDB.ExecContext(ctx, query, user.ChatId, user.FirstName, user.UserName)
 
 	if err != nil {
 		log.Println("Error adding new user:", err)
@@ -65,12 +65,12 @@ func AddNewUser(pgDB *sql.DB, user User) error {
 	return nil
 }
 
-func UpdateSubscription(pgDB *sql.DB, chatID int64, subscribed bool) error {
+func UpdateSubscription(ctx context.Context, pgDB *sql.DB, chatID int64, subscribed bool) error {
 	query := `
 		UPDATE users SET subscribed = $1 WHERE chat_id = $2
 	`
 
-	_, err := pgDB.ExecContext(context.Background(), query, subscribed, chatID)
+	_, err := pgDB.ExecContext(ctx, query, subscribed, chatID)
 
 	if err != nil {
 		log.Println("Error updating user subscription:", err)
