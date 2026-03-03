@@ -28,8 +28,8 @@ func LoadConfig() Config {
 
 	var schedule string
 
-	flag.StringVar(&schedule, "schedule", "0 * * * *", "Cron schedule that controls when the reminder is sent (supports standard cron syntax and @every intervals)")
-	flag.StringVar(&schedule, "s", "0 * * * *", "Cron schedule that controls when the reminder is sent (supports standard cron syntax and @every intervals)")
+	flag.StringVar(&schedule, "schedule", "0 */6 * * *", "Cron schedule that controls when the reminder is sent (supports standard cron syntax and @every intervals)")
+	flag.StringVar(&schedule, "s", "0 */6 * * *", "Cron schedule that controls when the reminder is sent (supports standard cron syntax and @every intervals)")
 
 	flag.Parse()
 

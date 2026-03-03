@@ -34,7 +34,7 @@ func (c *Client) handleStart(ctx context.Context, m *Message) {
 		log.Println("Error adding new user:", addNewUserErr)
 	}
 
-	welcomeMessage := "Hey " + m.Chat.FirstName + "!\n\nI am Daemon Bot. I send life quotes every hour. If you would love that, feel free to subscribe to me to get started."
+	welcomeMessage := "Hey " + m.Chat.FirstName + "!\n\nI am Daemon Bot. I send life quotes every 6 hours. If you would love that, feel free to subscribe to me to get started."
 
 	// The Inline keyboard buttons to subscribe and unsubscribe
 	welcomeReplyMarkup := &ReplyMarkup{
@@ -138,7 +138,7 @@ func (c *Client) replySubscription(ctx context.Context, subscribed bool, chatId 
 	var answerCallbackText string
 
 	if subscribed {
-		answerCallbackText = "Thank you for subscribing to my hourly quotes. You will start receiving quotes from the start of next hour(Local time). \n\nI hope you enjoy the journey."
+		answerCallbackText = "Thank you for subscribing! You will start receiving quotes every 6 hours. \n\nI hope you enjoy the journey."
 	} else {
 		answerCallbackText = "No problem, you can come back to subscribe whenever. \n\nI hope you have a good day!"
 	}
