@@ -18,7 +18,33 @@ func (c *Client) handleMessage(ctx context.Context, m *Message) {
 	switch m.Text {
 	case "/start":
 		c.handleStart(ctx, m)
+	case "/subscribe":
+		c.handleSubscribe(ctx, m, true)
+	case "/unsubscribe":
+		c.handleSubscribe(ctx, m, false)
+	case "/about":
+		c.handleAbout(ctx, m)
 	}
+}
+
+func (c *Client) handleAbout(ctx context.Context, m *Message) {
+	about := "✨ Daemon Bot ✨\n\n" +
+		"Your daily companion for wisdom and inspiration.\n\n" +
+		"📖 What I do\n" +
+		"Every 6 hours, I deliver a handpicked life quote straight to your chat — no noise, just words worth reading.\n\n" +
+		"⚡ Commands\n" +
+		"/subscribe — Start receiving quotes\n" +
+		"/unsubscribe — Pause anytime, no hard feelings\n" +
+		"/about — You're here!\n\n" +
+		"Built with ☕ and Go."
+
+	sendCtx, sendCancel := context.WithTimeout(ctx, 5*time.Second)
+
+	if err := c.HandleSend(sendCtx, m.Chat.ID, about, nil); err != nil {
+		log.Println(err)
+	}
+
+	sendCancel()
 }
 
 func (c *Client) handleStart(ctx context.Context, m *Message) {
@@ -57,6 +83,18 @@ func (c *Client) handleStart(ctx context.Context, m *Message) {
 	}
 }
 
+func (c *Client) handleSubscribe(ctx context.Context, m *Message, subscribed bool) error {
+	if err := db.UpdateSubscription(ctx, c.Database, m.Chat.ID, subscribed); err != nil {
+		log.Println("error updating subscription status to subscribed:", err)
+
+		c.replySubscriptionChangeErr(ctx, subscribed, m.Chat.ID)
+		return err
+	}
+
+	c.replySubscription(ctx, subscribed, m.Chat.ID)
+	return nil
+}
+
 func (c *Client) handleCallback(ctx context.Context, cb *CallbackQuery) {
 	c.answerCallback(ctx, cb.ID)
 
@@ -67,23 +105,14 @@ func (c *Client) handleCallback(ctx context.Context, cb *CallbackQuery) {
 
 	switch cb.Data {
 	case "subscribe":
-		if err := db.UpdateSubscription(ctx, c.Database, cb.Message.Chat.ID, true); err != nil {
-			log.Println("error updating subscription status to subscribed:", err)
-
-			c.replySubscriptionChangeErr(ctx, true, cb.Message.Chat.ID)
+		if err := c.handleSubscribe(ctx, cb.Message, true); err != nil {
 			return
 		}
 
-		c.replySubscription(ctx, true, cb.Message.Chat.ID)
 	case "unsubscribe":
-		if err := db.UpdateSubscription(ctx, c.Database, cb.Message.Chat.ID, false); err != nil {
-			log.Println("error updating subscription status to unsubscribed:", err)
-
-			c.replySubscriptionChangeErr(ctx, false, cb.Message.Chat.ID)
+		if err := c.handleSubscribe(ctx, cb.Message, false); err != nil {
 			return
 		}
-
-		c.replySubscription(ctx, false, cb.Message.Chat.ID)
 	}
 }
 
