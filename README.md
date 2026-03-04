@@ -19,7 +19,7 @@ This service:
 -   Falls back to a configurable default quote on fetch failure
 -   Sends messages using the Telegram Bot API
 -   Listens for Telegram updates via long-polling
--   Handles `/start` command with inline keyboard buttons
+-   Handles `/start`, `/subscribe`, `/unsubscribe`, and `/about` commands
 -   Routes callback queries (Subscribe / Unsubscribe)
 -   Registers new users in PostgreSQL on `/start` (upsert — safe to repeat)
 -   Persists subscription state in the database
@@ -196,8 +196,10 @@ On each scheduled execution:
 On Telegram message received:
 
 -   Routes to the appropriate handler
--   `/start` registers the user in the database (upsert) and replies with a welcome message and inline keyboard
--   Subscribe / Unsubscribe callbacks update the user's subscription state in the database
+-   `/start` registers the user and replies with a welcome message and inline keyboard
+-   `/subscribe` and `/unsubscribe` update subscription state directly — no need to go through `/start`
+-   `/about` replies with a description of the bot and available commands
+-   Subscribe / Unsubscribe inline button callbacks also update subscription state
 -   Each processed update saves the new offset to DB
 
 On shutdown (Ctrl + C):
@@ -261,7 +263,7 @@ Encapsulates:
 -   Long-polling via `StartPolling(ctx)` — routes updates to handlers
 -   `HandleSend(ctx, chatId, text, replyMarkup)` — sends messages
 -   `handleMessage` / `handleCallback` — command and button routing
--   `/start` triggers user upsert; Subscribe/Unsubscribe callbacks update the DB
+-   `/start` triggers user upsert; `/subscribe`, `/unsubscribe` update subscription directly; `/about` describes the bot
 -   Saves update offset to DB after each processed update
 
 ### Execution Model
@@ -289,7 +291,7 @@ See [DEPLOY.md](DEPLOY.md) for the full deployment guide.
 -   PostgreSQL-backed user registration and subscription management
 -   Broadcast targets fetched from the database at runtime
 -   Telegram update offset persisted — no stale replays on restart
--   Interactive Telegram commands via long-polling (`/start`, callbacks)
+-   Interactive Telegram commands via long-polling (`/start`, `/subscribe`, `/unsubscribe`, `/about`, callbacks)
 -   External quote API with fallback
 -   No retry policy
 -   No multi-job configuration
