@@ -88,6 +88,19 @@ func (c *Client) handleStart(ctx context.Context, m *Message) {
 }
 
 func (c *Client) handleSubscribe(ctx context.Context, m *Message, subscribed bool) error {
+	addNewUserErr := db.AddNewUser(ctx, c.Database, db.User{
+		ChatId:    m.Chat.ID,
+		FirstName: m.Chat.FirstName,
+		UserName:  m.Chat.UserName,
+	})
+
+	if addNewUserErr != nil {
+		log.Println("Error adding new user:", addNewUserErr)
+
+		c.replySubscriptionChangeErr(ctx, subscribed, m.Chat.ID)
+		return addNewUserErr
+	}
+
 	if err := db.UpdateSubscription(ctx, c.Database, m.Chat.ID, subscribed); err != nil {
 		targetState := "subscribed"
 		if !subscribed {
