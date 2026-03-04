@@ -19,9 +19,13 @@ func (c *Client) handleMessage(ctx context.Context, m *Message) {
 	case "/start":
 		c.handleStart(ctx, m)
 	case "/subscribe":
-		c.handleSubscribe(ctx, m, true)
+		if err := c.handleSubscribe(ctx, m, true); err != nil {
+			log.Println("error handling subscribe:", err)
+		}
 	case "/unsubscribe":
-		c.handleSubscribe(ctx, m, false)
+		if err := c.handleSubscribe(ctx, m, false); err != nil {
+			log.Println("error handling unsubscribe:", err)
+		}
 	case "/about":
 		c.handleAbout(ctx, m)
 	}
@@ -85,7 +89,11 @@ func (c *Client) handleStart(ctx context.Context, m *Message) {
 
 func (c *Client) handleSubscribe(ctx context.Context, m *Message, subscribed bool) error {
 	if err := db.UpdateSubscription(ctx, c.Database, m.Chat.ID, subscribed); err != nil {
-		log.Println("error updating subscription status to subscribed:", err)
+		targetState := "subscribed"
+		if !subscribed {
+			targetState = "unsubscribed"
+		}
+		log.Println("error updating subscription status to", targetState+":", err)
 
 		c.replySubscriptionChangeErr(ctx, subscribed, m.Chat.ID)
 		return err
