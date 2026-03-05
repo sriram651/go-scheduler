@@ -76,7 +76,7 @@ Paste the following, filling in real values:
 
     docker run -d \
       --name go-scheduler \
-      --restart=on-failure \
+      --restart=unless-stopped \
       --env-file /etc/go-scheduler.env \
       ghcr.io/sriram651/go-scheduler:latest
 
@@ -111,7 +111,7 @@ To change a secret or config value:
 
         docker stop go-scheduler
         docker rm go-scheduler
-        docker run -d --name go-scheduler --restart=on-failure --env-file /etc/go-scheduler.env ghcr.io/sriram651/go-scheduler:latest
+        docker run -d --name go-scheduler --restart=unless-stopped --env-file /etc/go-scheduler.env ghcr.io/sriram651/go-scheduler:latest
 
 ------------------------------------------------------------------------
 
@@ -127,10 +127,10 @@ To change a secret or config value:
 
 ## Summary
 
-| Action             | Command                                                                        |
-| ------------------ | ------------------------------------------------------------------------------ |
-| Deploy             | Push to `main` — Actions handles the rest                                      |
-| Check status       | `docker ps`                                                                    |
-| Tail logs          | `docker logs -f go-scheduler`                                                  |
-| Restart container  | `docker restart go-scheduler`                                                  |
-| Update env vars    | Edit `/etc/go-scheduler.env`, then stop/rm/run the container                  |
+| Action            | Command                                                      |
+| ----------------- | ------------------------------------------------------------ |
+| Deploy            | Push to `main` — Actions handles the rest                    |
+| Check status      | `docker ps`                                                  |
+| Tail logs         | `docker logs -f go-scheduler`                                |
+| Restart container | `docker restart go-scheduler`                                |
+| Update env vars   | Edit `/etc/go-scheduler.env`, then stop/rm/run the container |
