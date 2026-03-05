@@ -5,6 +5,10 @@ on:
         branches:
             - main
 
+permissions:
+    contents: read
+    packages: write
+
 jobs:
     deploy:
         runs-on: ubuntu-latest
@@ -37,4 +41,5 @@ jobs:
                       docker pull ghcr.io/${{ github.repository }}:latest
                       docker stop go-scheduler || true
                       docker rm go-scheduler || true
-                      docker run -d --restart=on-failure --name go-scheduler --env-file /etc/go-scheduler.env ghcr.io/${{ github.repository }}:latest
+                      docker run -d --restart=unless-stopped --name go-scheduler --env-file /etc/go-scheduler.env ghcr.io/${{ github.repository }}:latest
+                      docker image prune -f --filter "dangling=true"
