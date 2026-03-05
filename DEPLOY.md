@@ -1,65 +1,38 @@
 # Deployment Guide
 
-How to build and push a new binary to the Hostinger VPS, with secrets
-managed entirely on the server via a systemd service file.
+The service runs as a Docker container on a Hostinger VPS. Deployments
+are fully automated via GitHub Actions — every push to `main` builds a
+new image, pushes it to GitHub Container Registry, and restarts the
+container on the VPS.
 
 No secrets are committed to this repository.
+
+------------------------------------------------------------------------
+
+## How Deployments Work
+
+1. Push to `main` triggers the GitHub Actions workflow
+2. Actions builds the Docker image and pushes it to `ghcr.io/sriram651/go-scheduler:latest`
+3. Actions SSHes into the VPS and runs:
+   - `docker pull` — fetches the new image
+   - `docker stop` + `docker rm` — removes the old container
+   - `docker run` — starts a fresh container from the new image
 
 ------------------------------------------------------------------------
 
 ## Prerequisites
 
 - SSH access to the VPS
-- Go installed locally (for building)
-- The systemd service already set up on the server (see First-Time Setup)
+- Docker installed on the VPS
+- GitHub Actions secrets configured: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`
 
 ------------------------------------------------------------------------
 
-## Building the Binary
+## First-Time VPS Setup
 
-Cross-compile for Linux (the VPS target) from your local machine:
+### 1. Install Docker
 
-    GOOS=linux GOARCH=amd64 go build -o go-scheduler ./cmd/scheduler/
-
-This produces a `go-scheduler` binary in the project root.
-
-> If your VPS uses a different architecture (e.g. ARM), set
-> `GOARCH=arm64` instead.
-
-------------------------------------------------------------------------
-
-## Pushing a New Build
-
-Copy the binary to the VPS:
-
-    scp go-scheduler user@your-vps-ip:/path/to/app/go-scheduler
-
-Then restart the service to pick up the new binary:
-
-    ssh user@your-vps-ip "sudo systemctl restart go-scheduler"
-
-Verify it came back up cleanly:
-
-    ssh user@your-vps-ip "sudo systemctl status go-scheduler"
-
-------------------------------------------------------------------------
-
-## Checking Logs
-
-    ssh user@your-vps-ip "sudo journalctl -u go-scheduler -f"
-
-Or to see the last 50 lines without following:
-
-    ssh user@your-vps-ip "sudo journalctl -u go-scheduler -n 50 --no-pager"
-
-------------------------------------------------------------------------
-
-## First-Time Setup on the VPS
-
-### 1. Copy the binary
-
-    scp go-scheduler user@your-vps-ip:/path/to/app/go-scheduler
-    ssh user@your-vps-ip "chmod +x /path/to/app/go-scheduler"
+    curl -fsSL https://get.docker.com | sh
 
 ### 2. Set up the database schema
 
@@ -83,47 +56,46 @@ INSERT INTO bot_config (key, value) VALUES ('telegram_offset', '0');
 
 > **The `INSERT` above is required.** If the `telegram_offset` row is missing, the service will log a warning at startup and continue running, but offset persistence will be silently broken — messages may replay on every restart.
 
-### 3. Create the systemd service file
+### 3. Create the env file
 
-On the VPS, create `/etc/systemd/system/go-scheduler.service`:
+Create `/etc/go-scheduler.env` on the VPS:
 
-    sudo nano /etc/systemd/system/go-scheduler.service
+    sudo nano /etc/go-scheduler.env
 
-Paste the following, filling in real values under `[Service]`:
+Paste the following, filling in real values:
 
-```ini
-[Unit]
-Description=Go Cron Telegram Reminder Service
-After=network.target
+    TG_BOT_TOKEN=your_tg_bot_token_here
+    TG_API_BASE_URL=https://api.telegram.org/bot
+    QUOTE_API_URL=https://your-quote-api.com/api/random
+    DEFAULT_QUOTE=Your fallback quote here.
+    DATABASE_URL=postgres://user:password@host:5432/dbname
 
-[Service]
-Type=simple
-ExecStart=/path/to/app/go-scheduler --schedule "0 * * * *"
-Restart=on-failure
-RestartSec=10
+> This file lives only on the server and is never committed to git.
 
-Environment="TG_BOT_TOKEN=your_tg_bot_token_here"
-Environment="TG_API_BASE_URL=https://api.telegram.org/bot"
-Environment="QUOTE_API_URL=https://your-quote-api.com/api/random"
-Environment="DEFAULT_QUOTE=Your fallback quote here."
-Environment="DATABASE_URL=postgres://user:password@host:5432/dbname"
+### 4. Run the container manually (first time)
 
-[Install]
-WantedBy=multi-user.target
-```
+    docker run -d \
+      --name go-scheduler \
+      --restart=on-failure \
+      --env-file /etc/go-scheduler.env \
+      ghcr.io/sriram651/go-scheduler:latest
 
-> The `Environment=` lines live only on the server and are never
-> committed to git. This is the only place secrets should exist.
+### 5. Verify it is running
 
-### 4. Enable and start the service
+    docker ps
+    docker logs go-scheduler
 
-    sudo systemctl daemon-reload
-    sudo systemctl enable go-scheduler
-    sudo systemctl start go-scheduler
+------------------------------------------------------------------------
 
-### 5. Confirm it is running
+## Checking Logs
 
-    sudo systemctl status go-scheduler
+Follow live logs:
+
+    docker logs -f go-scheduler
+
+Last 50 lines:
+
+    docker logs --tail 50 go-scheduler
 
 ------------------------------------------------------------------------
 
@@ -131,26 +103,34 @@ WantedBy=multi-user.target
 
 To change a secret or config value:
 
-1. Edit the service file on the VPS:
+1. Edit the env file on the VPS:
 
-        sudo nano /etc/systemd/system/go-scheduler.service
+        sudo nano /etc/go-scheduler.env
 
-2. Update the relevant `Environment=` line.
+2. Restart the container to pick up the new values:
 
-3. Reload and restart:
+        docker stop go-scheduler
+        docker rm go-scheduler
+        docker run -d --name go-scheduler --restart=on-failure --env-file /etc/go-scheduler.env ghcr.io/sriram651/go-scheduler:latest
 
-        sudo systemctl daemon-reload
-        sudo systemctl restart go-scheduler
+------------------------------------------------------------------------
+
+## GitHub Actions Secrets Required
+
+| Secret        | Description                        |
+| ------------- | ---------------------------------- |
+| `VPS_HOST`    | IP address of the VPS              |
+| `VPS_USER`    | SSH username (e.g. `root`)         |
+| `VPS_SSH_KEY` | Ed25519 private key for SSH access |
 
 ------------------------------------------------------------------------
 
 ## Summary
 
-| Action          | Command                                                             |
-| --------------- | ------------------------------------------------------------------- |
-| Build for Linux | `GOOS=linux GOARCH=amd64 go build -o go-scheduler ./cmd/scheduler/` |
-| Push binary     | `scp go-scheduler user@vps-ip:/path/to/app/`                        |
-| Restart service | `sudo systemctl restart go-scheduler`                               |
-| Check status    | `sudo systemctl status go-scheduler`                                |
-| Tail logs       | `sudo journalctl -u go-scheduler -f`                                |
-| Edit env vars   | `sudo nano /etc/systemd/system/go-scheduler.service`                |
+| Action             | Command                                                                        |
+| ------------------ | ------------------------------------------------------------------------------ |
+| Deploy             | Push to `main` — Actions handles the rest                                      |
+| Check status       | `docker ps`                                                                    |
+| Tail logs          | `docker logs -f go-scheduler`                                                  |
+| Restart container  | `docker restart go-scheduler`                                                  |
+| Update env vars    | Edit `/etc/go-scheduler.env`, then stop/rm/run the container                  |

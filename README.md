@@ -80,6 +80,7 @@ It is designed to run as a long-lived background service.
     │       ├── handlers.go      # Message and callback query handlers
     │       ├── polling.go       # Long-polling implementation
     │       └── types.go         # Telegram API type definitions
+    ├── Dockerfile               # Two-stage build: golang builder → alpine runtime
     ├── .env                     # Local secrets — never committed
     ├── .env.example             # Safe template to commit
     ├── DEPLOY.md                # VPS deployment guide
@@ -277,9 +278,14 @@ Encapsulates:
 
 ## Deployment
 
-The compiled binary is deployed and running on a Hostinger VPS as a
-long-lived background service. Environment variables are configured
-directly in the service file on the host.
+The service runs as a Docker container on a Hostinger VPS. The image is
+built and pushed to GitHub Container Registry (`ghcr.io`) via GitHub
+Actions on every push to `main`. The VPS pulls the latest image and
+restarts the container automatically.
+
+Environment variables are stored in an env file on the VPS and injected
+at container startup via `--env-file`. No secrets are committed to this
+repository.
 
 See [DEPLOY.md](DEPLOY.md) for the full deployment guide.
 
@@ -302,5 +308,4 @@ See [DEPLOY.md](DEPLOY.md) for the full deployment guide.
 
 -   Retry logic for transient failures
 -   Multi-reminder support
--   Dockerization
 -   Observability improvements
