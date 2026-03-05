@@ -16,6 +16,8 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
+RUN apk --no-cache add ca-certificates
+
 COPY --from=builder /app/scheduler .
 
 USER appuser
