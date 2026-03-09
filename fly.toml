@@ -1,0 +1,10 @@
+app = "go-scheduler"
+  primary_region = "bom"
+
+  [build]
+    dockerfile = "Dockerfile"
+
+  [[vm]]
+    memory = "256mb"
+    cpu_kind = "shared"
+    cpus = 1
