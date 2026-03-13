@@ -56,35 +56,41 @@ It is designed to run as a long-lived background service.
     go-scheduler/
     ├── cmd/
     │   └── scheduler/
-    │       └── main.go          # Entry point — wires config, starts app, handles shutdown
+    │       └── main.go               # Entry point — wires config, starts app, handles shutdown
     ├── deprecated/
-    │   └── tickerCron.go        # Legacy ticker-based scheduler (unused)
+    │   └── tickerCron.go             # Legacy ticker-based scheduler (unused)
     ├── internal/
     │   ├── app/
-    │   │   └── app.go           # Application orchestrator — wires all services
+    │   │   └── app.go                # Application orchestrator — wires all services
     │   ├── broadcast/
-    │   │   └── broadcast.go     # Quote broadcast coordinator with success/failure tracking
+    │   │   └── broadcast.go          # Quote broadcast coordinator with success/failure tracking
     │   ├── config/
-    │   │   └── config.go        # Config loader — env vars and CLI flags
+    │   │   └── config.go             # Config loader — env vars and CLI flags
     │   ├── db/
-    │   │   ├── db.go            # PostgreSQL connection setup
-    │   │   ├── users.go         # User registration and subscription queries
-    │   │   └── config.go        # Bot config queries (telegram offset)
+    │   │   ├── db.go                 # PostgreSQL connection setup
+    │   │   ├── users.go              # User registration and subscription queries
+    │   │   └── config.go             # Bot config queries (telegram offset)
     │   ├── quote/
-    │   │   ├── client.go        # QuoteClient struct and constructor
-    │   │   └── get.go           # GetQuote(ctx) method
+    │   │   ├── client.go             # QuoteClient struct and constructor
+    │   │   └── get.go                # GetQuote(ctx) method
     │   ├── scheduler/
-    │   │   └── scheduler.go     # Cron scheduler wrapper
+    │   │   └── scheduler.go          # Cron scheduler wrapper
     │   └── telegram/
-    │       ├── client.go        # TelegramClient struct and constructor
-    │       ├── handlers.go      # Message and callback query handlers
-    │       ├── polling.go       # Long-polling implementation
-    │       └── types.go         # Telegram API type definitions
-    ├── Dockerfile               # Two-stage build: golang builder → alpine runtime
-    ├── fly.toml                 # Fly.io app configuration
-    ├── .env                     # Local secrets — never committed
-    ├── .env.example             # Safe template to commit
-    ├── DEPLOY.md                # Fly.io deployment guide
+    │       ├── client.go             # TelegramClient struct and constructor
+    │       ├── handlers.go           # Message and callback query handlers
+    │       ├── polling.go            # Long-polling implementation
+    │       └── types.go              # Telegram API type definitions
+    ├── .github/
+    │   └── workflows/
+    │       └── deploy.yml            # GitHub Actions — fly deploy on push to main
+    ├── Dockerfile                    # Two-stage build: golang builder → alpine runtime
+    ├── fly.toml                      # Fly.io app configuration
+    ├── .env.development              # Local dev secrets — never committed
+    ├── .env.production               # Production secrets template — never committed
+    ├── .env.example                  # Safe template to commit
+    ├── .gitignore
+    ├── .dockerignore
+    ├── DEPLOY.md                     # Fly.io deployment guide
     ├── go.mod
     └── go.sum
 
