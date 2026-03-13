@@ -1,5 +1,5 @@
 # Env files
-.env
+.env*
 !.env.example
 
 # Build output

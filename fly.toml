@@ -1,10 +1,14 @@
-app = "go-scheduler"
-  primary_region = "bom"
+# fly.toml app configuration file generated for go-scheduler-morning-brook-3106 on 2026-03-13T21:12:37+05:30
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
-  [build]
-    dockerfile = "Dockerfile"
+app = 'go-scheduler-morning-brook-3106'
+primary_region = 'bom'
 
-  [[vm]]
-    memory = "256mb"
-    cpu_kind = "shared"
-    cpus = 1
+[build]
+  dockerfile = 'Dockerfile'
+
+[[vm]]
+  memory = '256mb'
+  cpus = 1
