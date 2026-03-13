@@ -83,7 +83,7 @@ It is designed to run as a long-lived background service.
     ├── Dockerfile               # Two-stage build: golang builder → alpine runtime
     ├── .env                     # Local secrets — never committed
     ├── .env.example             # Safe template to commit
-    ├── DEPLOY.md                # VPS deployment guide
+    ├── DEPLOY.md                # Fly.io deployment guide
     ├── go.mod
     └── go.sum
 
@@ -278,14 +278,12 @@ Encapsulates:
 
 ## Deployment
 
-The service runs as a Docker container on a Hostinger VPS. The image is
-built and pushed to GitHub Container Registry (`ghcr.io`) via GitHub
-Actions on every push to `main`. The VPS pulls the latest image and
-restarts the container automatically.
+The service runs as a Docker container on Fly.io. Every push to `main`
+triggers GitHub Actions, which uses `flyctl deploy --remote-only` to
+build and deploy the image directly on Fly's infrastructure.
 
-Environment variables are stored in an env file on the VPS and injected
-at container startup via `--env-file`. No secrets are committed to this
-repository.
+Secrets are managed via `flyctl secrets set` and injected at runtime by
+Fly.io. No secrets are committed to this repository.
 
 See [DEPLOY.md](DEPLOY.md) for the full deployment guide.
 

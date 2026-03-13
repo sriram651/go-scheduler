@@ -1,9 +1,8 @@
 # Deployment Guide
 
-The service runs as a Docker container on a Hostinger VPS. Deployments
-are fully automated via GitHub Actions — every push to `main` builds a
-new image, pushes it to GitHub Container Registry, and restarts the
-container on the VPS.
+The service runs as a Docker container on Fly.io. Deployments are fully
+automated via GitHub Actions — every push to `main` builds and deploys
+the image directly to Fly.io using `flyctl`.
 
 No secrets are committed to this repository.
 
@@ -12,29 +11,33 @@ No secrets are committed to this repository.
 ## How Deployments Work
 
 1. Push to `main` triggers the GitHub Actions workflow
-2. Actions builds the Docker image and pushes it to `ghcr.io/sriram651/go-scheduler:latest`
-3. Actions SSHes into the VPS and runs:
-   - `docker pull` — fetches the new image
-   - `docker stop` + `docker rm` — removes the old container
-   - `docker run` — starts a fresh container from the new image
+2. Actions sets up `flyctl` using the official `superfly/flyctl-actions` action
+3. `flyctl deploy --remote-only` builds the image on Fly's remote builder and deploys it
 
 ------------------------------------------------------------------------
 
 ## Prerequisites
 
-- SSH access to the VPS
-- Docker installed on the VPS
-- GitHub Actions secrets configured: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`
+- A Fly.io account with the app created (`flyctl launch`)
+- GitHub Actions secret configured: `FLY_API_TOKEN` (get it via `flyctl auth token`)
 
 ------------------------------------------------------------------------
 
-## First-Time VPS Setup
+## First-Time Fly.io Setup
 
-### 1. Install Docker
+### 1. Install flyctl and log in
 
-    curl -fsSL https://get.docker.com | sh
+    brew install flyctl
+    flyctl auth login
 
-### 2. Set up the database schema
+### 2. Launch the app (first time only)
+
+    flyctl launch
+
+This generates `fly.toml`. Since this is a background worker with no HTTP
+server, ensure `fly.toml` has no `[http_service]` block.
+
+### 3. Set up the database schema
 
 Connect to your PostgreSQL instance and run:
 
@@ -56,81 +59,50 @@ INSERT INTO bot_config (key, value) VALUES ('telegram_offset', '0');
 
 > **The `INSERT` above is required.** If the `telegram_offset` row is missing, the service will log a warning at startup and continue running, but offset persistence will be silently broken — messages may replay on every restart.
 
-### 3. Create the env file
+### 4. Set secrets on Fly.io
 
-Create `/etc/go-scheduler.env` on the VPS:
+    flyctl secrets set TG_BOT_TOKEN=your_tg_bot_token_here
+    flyctl secrets set TG_API_BASE_URL=https://api.telegram.org/bot
+    flyctl secrets set QUOTE_API_URL=https://your-quote-api.com/api/random
+    flyctl secrets set DEFAULT_QUOTE="Your fallback quote here."
+    flyctl secrets set DATABASE_URL="postgres://user:password@host:5432/dbname?sslmode=require"
 
-    sudo nano /etc/go-scheduler.env
+> Secrets live only in Fly.io and are never committed to git.
 
-Paste the following, filling in real values:
+### 5. Deploy
 
-    TG_BOT_TOKEN=your_tg_bot_token_here
-    TG_API_BASE_URL=https://api.telegram.org/bot
-    QUOTE_API_URL=https://your-quote-api.com/api/random
-    DEFAULT_QUOTE=Your fallback quote here.
-    DATABASE_URL=postgres://user:password@host:5432/dbname
-
-> This file lives only on the server and is never committed to git.
-
-### 4. Run the container manually (first time)
-
-    docker run -d \
-      --name go-scheduler \
-      --restart=unless-stopped \
-      --env-file /etc/go-scheduler.env \
-      ghcr.io/sriram651/go-scheduler:latest
-
-### 5. Verify it is running
-
-    docker ps
-    docker logs go-scheduler
+    flyctl deploy
 
 ------------------------------------------------------------------------
 
 ## Checking Logs
 
-Follow live logs:
-
-    docker logs -f go-scheduler
-
-Last 50 lines:
-
-    docker logs --tail 50 go-scheduler
+    flyctl logs
 
 ------------------------------------------------------------------------
 
-## Updating Environment Variables
+## Updating Secrets
 
-To change a secret or config value:
+    flyctl secrets set KEY=new_value
 
-1. Edit the env file on the VPS:
-
-        sudo nano /etc/go-scheduler.env
-
-2. Restart the container to pick up the new values:
-
-        docker stop go-scheduler
-        docker rm go-scheduler
-        docker run -d --name go-scheduler --restart=unless-stopped --env-file /etc/go-scheduler.env ghcr.io/sriram651/go-scheduler:latest
+Fly automatically redeploys after secrets are updated.
 
 ------------------------------------------------------------------------
 
 ## GitHub Actions Secrets Required
 
-| Secret        | Description                        |
-| ------------- | ---------------------------------- |
-| `VPS_HOST`    | IP address of the VPS              |
-| `VPS_USER`    | SSH username (e.g. `root`)         |
-| `VPS_SSH_KEY` | Ed25519 private key for SSH access |
+| Secret          | Description                                      |
+| --------------- | ------------------------------------------------ |
+| `FLY_API_TOKEN` | Fly.io API token — get it via `flyctl auth token` |
 
 ------------------------------------------------------------------------
 
 ## Summary
 
-| Action            | Command                                                      |
-| ----------------- | ------------------------------------------------------------ |
-| Deploy            | Push to `main` — Actions handles the rest                    |
-| Check status      | `docker ps`                                                  |
-| Tail logs         | `docker logs -f go-scheduler`                                |
-| Restart container | `docker restart go-scheduler`                                |
-| Update env vars   | Edit `/etc/go-scheduler.env`, then stop/rm/run the container |
+| Action          | Command                           |
+| --------------- | --------------------------------- |
+| Deploy          | Push to `main` — Actions handles the rest |
+| Check logs      | `flyctl logs`                     |
+| Update secrets  | `flyctl secrets set KEY=value`    |
+| Check status    | `flyctl status`                   |
+| SSH into machine| `flyctl ssh console`              |
