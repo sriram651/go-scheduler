@@ -81,6 +81,7 @@ It is designed to run as a long-lived background service.
     │       ├── polling.go       # Long-polling implementation
     │       └── types.go         # Telegram API type definitions
     ├── Dockerfile               # Two-stage build: golang builder → alpine runtime
+    ├── fly.toml                 # Fly.io app configuration
     ├── .env                     # Local secrets — never committed
     ├── .env.example             # Safe template to commit
     ├── DEPLOY.md                # Fly.io deployment guide
