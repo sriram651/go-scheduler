@@ -102,7 +102,7 @@ This project is a learning-oriented codebase. The owner values understanding ove
 ## Decisions Already Made — Don't Revisit
 
 - **No concurrent broadcast sends yet** — sequential is fine for the current user count, but concurrency must come before retry logic. Retrying inside a sequential loop blocks all subsequent users.
-- **No retry logic yet** — blocked on concurrent broadcast sends. A plan is drafted in `retry-plan.md`.
+- **No retry logic yet** — blocked on concurrent broadcast sends. A plan is drafted in `docs/plan/retry-plan.md`.
 - **Dev environment is local** — `go run ./cmd/scheduler/` with a dev bot token and a dev Neon DB branch. No dev container on the VPS.
 - **Docker is prod-only** — single container on Fly.io, secrets managed via `flyctl secrets set`. No multi-environment Docker setup.
 - **`bot_config` is a generic key-value table** — kept flexible for future runtime state without over-engineering.
@@ -111,10 +111,10 @@ This project is a learning-oriented codebase. The owner values understanding ove
 
 ## Planned Work
 
-See `custom-config-plan.md` for the full design. Work is divided into three phases:
+See `docs/plan/custom-config-plan.md` for the full design. Work is divided into three phases:
 
 - **Phase 1 — Cache + Deduplication:** Store fetched quotes and stop sending the same quote to the same user twice. Uses existing API with its stable ID as cache key. Start here.
 - **Phase 2 — Hashing:** Replace the API's ID with a SHA-256 content hash as the cache key. Validates hashing logic in isolation before the API swap.
 - **Phase 3 — New Endpoint + Category Preference:** Swap quote API, add per-user category selection via `/settings`, update broadcast to group users by category and fetch per unique category.
 
-Retry logic is deferred until after concurrent broadcast sends are implemented. See `retry-plan.md`.
+Retry logic is deferred until after concurrent broadcast sends are implemented. See `docs/plan/retry-plan.md`.
