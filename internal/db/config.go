@@ -37,6 +37,35 @@ func GetTelegramOffset(ctx context.Context, pgDB *sql.DB) (int64, error) {
 	return offset, nil
 }
 
+func GetSendHour(ctx context.Context, pgDB *sql.DB) (int64, error) {
+	query := `
+		SELECT value
+		FROM bot_config
+		WHERE key = $1;
+	`
+
+	row := pgDB.QueryRowContext(ctx, query, "send_hour")
+
+	var rawValue string
+
+	if err := row.Scan(&rawValue); err != nil {
+		return 0, err
+	}
+
+	sendHour, convErr := strconv.ParseInt(rawValue, 10, 64)
+
+	if convErr != nil {
+		if errors.Is(convErr, sql.ErrNoRows) {
+			log.Println("⚠️ [WARNING] bot_config row for send_hour is missing. Insert it with: INSERT INTO bot_config (key, value) VALUES ('send_hour', '9'); — Quotes might be sent at inappropriate hours for some users.")
+			return 0, nil
+		}
+
+		return 0, convErr
+	}
+
+	return sendHour, nil
+}
+
 func UpdateBotConfig(ctx context.Context, pgDB *sql.DB, key string, value int64) error {
 	query := `
 		UPDATE bot_config
