@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"log"
+	"time"
 )
 
 type User struct {
@@ -21,6 +22,43 @@ func GetSubscribedUsers(pgDB *sql.DB) ([]int64, error) {
 	`
 
 	rows, err := pgDB.Query(query)
+
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var chatIDs []int64
+
+	for rows.Next() {
+		var chatId int64
+
+		if err := rows.Scan(&chatId); err != nil {
+			log.Println(err)
+			return nil, err
+		}
+
+		chatIDs = append(chatIDs, chatId)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return chatIDs, nil
+}
+
+func GetUsersForHour(ctx context.Context, pgDB *sql.DB, nowUTC time.Time, sendHour int) ([]int64, error) {
+	query := `
+		SELECT chat_id
+		FROM users
+		WHERE subscribed=true AND EXTRACT(HOUR FROM $1 AT TIME ZONE COALESCE(timezone, 'UTC'))=$2;
+	`
+
+	rows, err := pgDB.QueryContext(ctx, query, nowUTC, sendHour)
 
 	if err != nil {
 		log.Println(err)
