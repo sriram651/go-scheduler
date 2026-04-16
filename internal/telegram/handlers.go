@@ -28,6 +28,10 @@ func (c *Client) handleMessage(ctx context.Context, m *Message) {
 		}
 	case "/about":
 		c.handleAbout(ctx, m)
+	case "/timezone":
+		if err := c.handleTimezone(ctx, m); err != nil {
+			log.Println("error handling timezone:", err)
+		}
 	}
 }
 
@@ -124,6 +128,25 @@ func (c *Client) handleCallback(ctx context.Context, cb *CallbackQuery) {
 		return
 	}
 
+	isTimezoneContPresent := strings.HasPrefix(cb.Data, "tz-cont:")
+	isTimezonePresent := strings.HasPrefix(cb.Data, "tz:")
+
+	if isTimezoneContPresent {
+		continent, _ := strings.CutPrefix(cb.Data, "tz-cont:")
+		if err := c.handleTimezoneContinent(ctx, continent, cb.Message); err != nil {
+			return
+		}
+
+		return
+	} else if isTimezonePresent {
+		timezone, _ := strings.CutPrefix(cb.Data, "tz:")
+		if err := c.handleTimezoneSelect(ctx, timezone, cb.Message); err != nil {
+			return
+		}
+
+		return
+	}
+
 	switch cb.Data {
 	case "subscribe":
 		if err := c.handleSubscribe(ctx, cb.Message, true); err != nil {
@@ -134,6 +157,158 @@ func (c *Client) handleCallback(ctx context.Context, cb *CallbackQuery) {
 		if err := c.handleSubscribe(ctx, cb.Message, false); err != nil {
 			return
 		}
+	}
+}
+
+func (c *Client) handleTimezone(ctx context.Context, m *Message) error {
+	addNewUserErr := db.AddNewUser(ctx, c.Database, db.User{
+		ChatId:    m.Chat.ID,
+		FirstName: m.Chat.FirstName,
+		UserName:  m.Chat.UserName,
+	})
+
+	if addNewUserErr != nil {
+		log.Println("Error adding new user:", addNewUserErr)
+
+		c.replyTimezoneUpdateErr(ctx, m.Chat.ID)
+		return addNewUserErr
+	}
+
+	timezoneHandlerMessage := "🌍 Let's set your timezone" + "\nThis way I can send quotes at a reasonable hour wherever you are - no 3 AM pings." + "\n\nPick your region to get started:"
+
+	timezonesReplyMarkup := &ReplyMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{{Text: "Asia", CallbackData: "tz-cont:asia"}, {Text: "Europe", CallbackData: "tz-cont:europe"}},
+			{{Text: "Americas", CallbackData: "tz-cont:americas"}, {Text: "Africa", CallbackData: "tz-cont:africa"}},
+			{{Text: "Oceania", CallbackData: "tz-cont:oceania"}, {Text: "Other", CallbackData: "tz-cont:other"}},
+		},
+	}
+
+	sendCtx, sendCancel := context.WithTimeout(ctx, 5*time.Second)
+
+	sendErr := c.HandleSend(sendCtx, m.Chat.ID, timezoneHandlerMessage, timezonesReplyMarkup)
+
+	sendCancel()
+
+	if sendErr != nil {
+		log.Println(sendErr)
+		return sendErr
+	}
+
+	return nil
+}
+
+func (c *Client) handleTimezoneContinent(ctx context.Context, cbData string, m *Message) error {
+	timezoneContinentHandlerMessage := "Pick your timezone in " + cbData + ", or tap ← Back to change region."
+
+	var zones []string
+
+	for _, continentGroup := range timezonesByContinent {
+		continentName := strings.ToLower(continentGroup.Name)
+
+		if continentName == cbData {
+			zones = continentGroup.Zones
+			break
+		}
+	}
+
+	if len(zones) == 0 {
+		return fmt.Errorf("Invalid continent selection received - %s", cbData)
+	}
+
+	var keyboardMarkup [][]InlineKeyboardButton
+
+	// Used as buffer
+	var keyboardRow []InlineKeyboardButton
+
+	for _, zone := range zones {
+		if len(keyboardRow) == 2 {
+			keyboardMarkup = append(keyboardMarkup, keyboardRow)
+
+			// Empty out the buffer
+			keyboardRow = []InlineKeyboardButton{}
+		}
+
+		zoneButton := InlineKeyboardButton{
+			Text:         zone,
+			CallbackData: "tz:" + zone,
+		}
+
+		keyboardRow = append(keyboardRow, zoneButton)
+	}
+
+	if len(keyboardRow) != 0 {
+		keyboardMarkup = append(keyboardMarkup, keyboardRow)
+
+		// Empty out the buffer
+		keyboardRow = []InlineKeyboardButton{}
+	}
+
+	timezonesReplyMarkup := &ReplyMarkup{
+		InlineKeyboard: keyboardMarkup,
+	}
+
+	sendCtx, sendCancel := context.WithTimeout(ctx, 5*time.Second)
+
+	sendErr := c.HandleSend(sendCtx, m.Chat.ID, timezoneContinentHandlerMessage, timezonesReplyMarkup)
+
+	sendCancel()
+
+	if sendErr != nil {
+		log.Println(sendErr)
+		return sendErr
+	}
+
+	return nil
+}
+
+func (c *Client) handleTimezoneSelect(ctx context.Context, cbData string, m *Message) error {
+	fmt.Println("User has selected their timezone: ", cbData)
+	isTimezoneValid := IsValidTimeZone(cbData)
+
+	if !isTimezoneValid {
+		return fmt.Errorf("Selected timezone is not valid: %s", cbData)
+	}
+
+	tzUpdateErr := db.UpdateUserTimezone(ctx, c.Database, m.Chat.ID, cbData)
+
+	if tzUpdateErr != nil {
+		log.Println("Error updating user's timezone. chat_id: ", m.Chat.ID, ", timezone: ", cbData)
+		c.replyTimezoneUpdateErr(ctx, m.Chat.ID)
+
+		return tzUpdateErr
+	}
+
+	c.replyUpdateTimezone(ctx, cbData, m.Chat.ID)
+
+	return nil
+}
+
+func (c *Client) replyUpdateTimezone(ctx context.Context, tz string, chatId int64) {
+	answerCallbackText := "✅ Timezone saved: " + tz + "\n\nNo more 3 AM pings - quotes will land at a reasonable local hour from now on. Run /timezone again anytime to change it."
+
+	sendCtx, sendCancel := context.WithTimeout(ctx, 5*time.Second)
+
+	sendErr := c.HandleSend(sendCtx, chatId, answerCallbackText, nil)
+
+	sendCancel()
+
+	if sendErr != nil {
+		log.Println(sendErr)
+	}
+}
+
+func (c *Client) replyTimezoneUpdateErr(ctx context.Context, chatId int64) {
+	answerCallbackText := "Couldn't save your timezone just now. Please try again in a moment."
+
+	sendCtx, sendCancel := context.WithTimeout(ctx, 5*time.Second)
+
+	sendErr := c.HandleSend(sendCtx, chatId, answerCallbackText, nil)
+
+	sendCancel()
+
+	if sendErr != nil {
+		log.Println(sendErr)
 	}
 }
 
