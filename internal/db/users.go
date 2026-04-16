@@ -127,3 +127,20 @@ func UpdateSubscription(ctx context.Context, pgDB *sql.DB, chatID int64, subscri
 
 	return nil
 }
+
+func UpdateUserTimezone(ctx context.Context, pgDB *sql.DB, chatID int64, tz string) error {
+	query := `
+		UPDATE users SET timezone = $1 WHERE chat_id = $2
+	`
+
+	_, err := pgDB.ExecContext(ctx, query, tz, chatID)
+
+	if err != nil {
+		log.Println("Error updating user timezone:", err)
+		return err
+	}
+
+	log.Println("User", chatID, "timezone updated to ", tz)
+
+	return nil
+}
