@@ -8,7 +8,7 @@ import (
 	"strconv"
 )
 
-func GetTelegramOffset(ctx context.Context, pgDB *sql.DB) (int64, error) {
+func GetTelegramOffset(ctx context.Context, pgDB *sql.DB) (int, error) {
 	query := `
 		SELECT value
 		FROM bot_config
@@ -34,7 +34,7 @@ func GetTelegramOffset(ctx context.Context, pgDB *sql.DB) (int64, error) {
 		return 0, convErr
 	}
 
-	return offset, nil
+	return int(offset), nil
 }
 
 func GetSendHour(ctx context.Context, pgDB *sql.DB) (int64, error) {
@@ -48,18 +48,18 @@ func GetSendHour(ctx context.Context, pgDB *sql.DB) (int64, error) {
 
 	var rawValue string
 
-	if err := row.Scan(&rawValue); err != nil {
-		return 0, err
+	if sqlRowErr := row.Scan(&rawValue); sqlRowErr != nil {
+		if errors.Is(sqlRowErr, sql.ErrNoRows) {
+			log.Println("⚠️ [WARNING] bot_config row for send_hour is missing. Insert it with: INSERT INTO bot_config (key, value) VALUES ('send_hour', '9'); — Quotes might be sent at inappropriate hours for some users.")
+			return 0, nil
+		}
+
+		return 0, sqlRowErr
 	}
 
 	sendHour, convErr := strconv.ParseInt(rawValue, 10, 64)
 
 	if convErr != nil {
-		if errors.Is(convErr, sql.ErrNoRows) {
-			log.Println("⚠️ [WARNING] bot_config row for send_hour is missing. Insert it with: INSERT INTO bot_config (key, value) VALUES ('send_hour', '9'); — Quotes might be sent at inappropriate hours for some users.")
-			return 0, nil
-		}
-
 		return 0, convErr
 	}
 
