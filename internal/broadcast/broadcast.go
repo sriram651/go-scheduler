@@ -14,6 +14,7 @@ import (
 type Broadcast struct {
 	Quote    *quote.Client
 	Telegram *telegram.Client
+	sendHour int
 	Database *sql.DB
 }
 
@@ -24,6 +25,10 @@ func NewClient(qc *quote.Client, tc *telegram.Client, database *sql.DB) *Broadca
 		Telegram: tc,
 		Database: database,
 	}
+}
+
+func (b *Broadcast) UpdateSendHour(newSendHour int) {
+	b.sendHour = newSendHour
 }
 
 func (b *Broadcast) Run(ctx context.Context) {

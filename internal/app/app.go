@@ -40,7 +40,7 @@ func New(cfg config.Config) *App {
 func (a *App) Start(ctx context.Context) {
 	// Before starting, fetch the stored telegram offset
 	telegramOffset, getOffsetErr := db.GetTelegramOffset(ctx, a.Database)
-	_, getSendHourErr := db.GetSendHour(ctx, a.Database)
+	sendHour, getSendHourErr := db.GetSendHour(ctx, a.Database)
 
 	if getOffsetErr != nil {
 		log.Println("Error getting `telegram_offset` from `bot_config` table:", getOffsetErr)
@@ -52,6 +52,9 @@ func (a *App) Start(ctx context.Context) {
 
 	// To avoid old messages replays, we store and set the offset if the scheduler restarts for some reason.
 	a.Telegram.UpdateOffset(telegramOffset)
+
+	// Update the send_hour retrieved from the DB into the broadcast's client
+	a.Broadcast.UpdateSendHour(int(sendHour))
 
 	// Start the telegram long polling
 	go a.Telegram.StartPolling(ctx)

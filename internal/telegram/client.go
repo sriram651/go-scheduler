@@ -10,7 +10,7 @@ type Client struct {
 	baseUrl  string
 	token    string
 	client   *http.Client
-	offset   int64
+	offset   int
 	Database *sql.DB
 }
 
@@ -24,7 +24,7 @@ func NewClient(baseUrl string, token string, httpClientTimeout time.Duration, da
 	}
 }
 
-func (c *Client) UpdateOffset(newOffset int64) {
+func (c *Client) UpdateOffset(newOffset int) {
 	c.offset = newOffset
 }
 
