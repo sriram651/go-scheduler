@@ -39,11 +39,12 @@ func (c *Client) handleAbout(ctx context.Context, m *Message) {
 	about := "✨ Daemon Bot ✨\n\n" +
 		"Your daily companion for wisdom and inspiration.\n\n" +
 		"📖 What I do\n" +
-		"Every 6 hours, I deliver a handpicked life quote straight to your chat — no noise, just words worth reading.\n\n" +
+		"Once a day, I deliver a handpicked life quote straight to your chat -- no noise, just words worth reading\n\n" +
 		"⚡ Commands\n" +
-		"/subscribe — Start receiving quotes\n" +
-		"/unsubscribe — Pause anytime, no hard feelings\n" +
-		"/about — You're here!\n\n" +
+		"/subscribe -- Start receiving quotes\n" +
+		"/unsubscribe -- Pause anytime, no hard feelings\n\n" +
+		"/timezone -- Set your local timezone, no 3 AM pings\n\n" +
+		"/about -- You're here!\n\n" +
 		"Built with ☕ and Go."
 
 	sendCtx, sendCancel := context.WithTimeout(ctx, 5*time.Second)
@@ -199,7 +200,7 @@ func (c *Client) handleTimezone(ctx context.Context, m *Message) error {
 }
 
 func (c *Client) handleTimezoneContinent(ctx context.Context, cbData string, m *Message) error {
-	timezoneContinentHandlerMessage := "Pick your timezone in " + cbData + ", or tap ← Back to change region."
+	timezoneContinentHandlerMessage := "Pick your timezone in " + strings.ToTitle(cbData) + ", or tap ← Back to change region."
 
 	var zones []string
 
@@ -263,11 +264,23 @@ func (c *Client) handleTimezoneContinent(ctx context.Context, cbData string, m *
 }
 
 func (c *Client) handleTimezoneSelect(ctx context.Context, cbData string, m *Message) error {
-	fmt.Println("User has selected their timezone: ", cbData)
 	isTimezoneValid := IsValidTimeZone(cbData)
 
 	if !isTimezoneValid {
 		return fmt.Errorf("Selected timezone is not valid: %s", cbData)
+	}
+
+	addNewUserErr := db.AddNewUser(ctx, c.Database, db.User{
+		ChatId:    m.Chat.ID,
+		FirstName: m.Chat.FirstName,
+		UserName:  m.Chat.UserName,
+	})
+
+	if addNewUserErr != nil {
+		log.Println("Error adding new user:", addNewUserErr)
+
+		c.replyTimezoneUpdateErr(ctx, m.Chat.ID)
+		return addNewUserErr
 	}
 
 	tzUpdateErr := db.UpdateUserTimezone(ctx, c.Database, m.Chat.ID, cbData)
