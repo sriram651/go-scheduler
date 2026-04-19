@@ -66,14 +66,14 @@ func GetSendHour(ctx context.Context, pgDB *sql.DB) (int64, error) {
 	return sendHour, nil
 }
 
-func UpdateBotConfig(ctx context.Context, pgDB *sql.DB, key string, value int64) error {
+func UpdateBotConfig(ctx context.Context, pgDB *sql.DB, key string, value int) error {
 	query := `
 		UPDATE bot_config
 		SET value = $1
 		WHERE key = $2;
 	`
 
-	_, err := pgDB.ExecContext(ctx, query, strconv.Itoa(int(value)), key)
+	_, err := pgDB.ExecContext(ctx, query, strconv.Itoa(value), key)
 
 	if err != nil {
 		return err

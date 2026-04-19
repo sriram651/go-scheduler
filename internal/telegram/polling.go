@@ -24,7 +24,7 @@ func (c *Client) StartPolling(ctx context.Context) {
 
 			for _, u := range updates {
 				c.routeUpdate(ctx, u)
-				newOffset := int64(u.UpdateID + 1)
+				newOffset := u.UpdateID + 1
 				c.UpdateOffset(newOffset)
 
 				if err := db.UpdateBotConfig(ctx, c.Database, "telegram_offset", newOffset); err != nil {
