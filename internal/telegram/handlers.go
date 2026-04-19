@@ -300,7 +300,26 @@ func (c *Client) handleTimezoneSelect(ctx context.Context, cbData string, m *Mes
 }
 
 func (c *Client) replyUpdateTimezone(ctx context.Context, tz string, chatId int64) {
-	loc, _ := time.LoadLocation(tz)
+	loc, err := time.LoadLocation(tz)
+
+	if err != nil {
+		log.Println("Error loading the tz", tz, ":", err)
+
+		answerCallbackText := "✅ *Timezone saved:* `" + tz + "`\n\nNo more 3 AM pings — quote will be sent anytime between " + strconv.Itoa(c.sendHour) + ":00hrs and " + strconv.Itoa((c.sendHour+1)%24) + ":00hrs from now on. Run /timezone again to change it."
+
+		sendCtx, sendCancel := context.WithTimeout(ctx, 5*time.Second)
+
+		sendErr := c.HandleSend(sendCtx, chatId, answerCallbackText, nil)
+
+		sendCancel()
+
+		if sendErr != nil {
+			log.Println(sendErr)
+		}
+
+		return
+	}
+
 	_, offset := time.Now().In(loc).Zone()
 
 	sendHourOffsetInMinutes := ((offset / 60) % 60)
@@ -318,7 +337,7 @@ func (c *Client) replyUpdateTimezone(ctx context.Context, tz string, chatId int6
 
 	userSendTime := strconv.Itoa(c.sendHour) + ":" + offsetMinutesStr
 
-	answerCallbackText := "✅ *Timezone saved:* `" + tz + "`\n\nNo more 3 AM pings — quotes will land at `" + userSendTime + "hrs` from now on. Run /timezone again to change it."
+	answerCallbackText := "✅ *Timezone saved:* `" + tz + "`\n\nNo more 3 AM pings — quote will land at `" + userSendTime + "hrs` from now on. Run /timezone again to change it."
 
 	sendCtx, sendCancel := context.WithTimeout(ctx, 5*time.Second)
 

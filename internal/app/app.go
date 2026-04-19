@@ -6,6 +6,8 @@ import (
 	"log"
 	"time"
 
+	_ "time/tzdata"
+
 	"github.com/sriram651/go-scheduler/internal/broadcast"
 	"github.com/sriram651/go-scheduler/internal/config"
 	"github.com/sriram651/go-scheduler/internal/db"
