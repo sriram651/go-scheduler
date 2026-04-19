@@ -303,9 +303,15 @@ func (c *Client) replyUpdateTimezone(ctx context.Context, tz string, chatId int6
 	loc, _ := time.LoadLocation(tz)
 	_, offset := time.Now().In(loc).Zone()
 
-	sendHourOffsetInMinutes := (offset / 60) % 60
-	offsetMinutesStr := strconv.Itoa(sendHourOffsetInMinutes)
+	sendHourOffsetInMinutes := ((offset / 60) % 60)
 
+	if sendHourOffsetInMinutes < 0 {
+		sendHourOffsetInMinutes = -sendHourOffsetInMinutes
+	}
+
+	offsetMinutesStr := strconv.Itoa(int(sendHourOffsetInMinutes))
+
+	// Padding a zero (0) at the start so we don't get outputs like "9:0hrs" instead we get "9:00hrs"
 	if sendHourOffsetInMinutes < 10 {
 		offsetMinutesStr = "0" + offsetMinutesStr
 	}
