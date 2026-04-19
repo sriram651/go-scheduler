@@ -31,7 +31,7 @@ func (b *Broadcast) UpdateSendHour(newSendHour int) {
 	b.sendHour = newSendHour
 }
 
-func (b *Broadcast) Run(ctx context.Context) {
+func (b *Broadcast) Run(ctx context.Context, nowUTC time.Time) {
 	log.Println("🚀 Cron run started")
 
 	var success, failure int
@@ -52,7 +52,7 @@ func (b *Broadcast) Run(ctx context.Context) {
 		broadcastMessage = b.Quote.DefaultQuote
 	}
 
-	subscribedUsers, getSubscribedUsersErr := db.GetSubscribedUsers(b.Database)
+	subscribedUsers, getSubscribedUsersErr := db.GetUsersForHour(ctx, b.Database, nowUTC, b.sendHour)
 
 	if getSubscribedUsersErr != nil {
 		log.Println("❌ Cron failed — could not fetch subscribed users:", getSubscribedUsersErr)
