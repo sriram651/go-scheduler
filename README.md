@@ -241,7 +241,7 @@ Manages PostgreSQL connection and queries:
 -   `Connect(dbURL)` — opens and pings the connection
 -   `AddNewUser(db, user)` — upserts a user row; updates name fields without touching subscription state
 -   `UpdateSubscription(db, chatId, subscribed)` — sets subscribed flag for a user
--   `GetSubscribedUsers(db)` — returns chat IDs of all subscribed users
+-   `GetSubscribedUsersForHour(ctx, db, nowUTC, sendHour)` — returns chat IDs of subscribed users whose local hour (per their stored IANA timezone, UTC fallback) matches `sendHour`
 -   `GetTelegramOffset(db)` — reads the last saved update offset from `bot_config`
 -   `UpdateBotConfig(db, key, value)` — upserts a key-value row in `bot_config`
 
