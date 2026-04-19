@@ -14,44 +14,7 @@ type User struct {
 	Subscribed bool   `json:"subscribed"`
 }
 
-func GetSubscribedUsers(pgDB *sql.DB) ([]int64, error) {
-	query := `
-		SELECT chat_id 
-		FROM users
-		WHERE subscribed = true;
-	`
-
-	rows, err := pgDB.Query(query)
-
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	defer rows.Close()
-
-	var chatIDs []int64
-
-	for rows.Next() {
-		var chatId int64
-
-		if err := rows.Scan(&chatId); err != nil {
-			log.Println(err)
-			return nil, err
-		}
-
-		chatIDs = append(chatIDs, chatId)
-	}
-
-	if err := rows.Err(); err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	return chatIDs, nil
-}
-
-func GetUsersForHour(ctx context.Context, pgDB *sql.DB, nowUTC time.Time, sendHour int) ([]int64, error) {
+func GetSubscribedUsersForHour(ctx context.Context, pgDB *sql.DB, nowUTC time.Time, sendHour int) ([]int64, error) {
 	query := `
 		SELECT chat_id
 		FROM users
