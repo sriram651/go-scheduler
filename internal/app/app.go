@@ -56,6 +56,7 @@ func (a *App) Start(ctx context.Context) {
 
 	// Update the send_hour retrieved from the DB into the broadcast's client
 	a.Broadcast.UpdateSendHour(int(sendHour))
+	a.Telegram.UpdateSendHour(int(sendHour))
 
 	// Start the telegram long polling
 	go a.Telegram.StartPolling(ctx)
