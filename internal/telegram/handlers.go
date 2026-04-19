@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -36,15 +37,15 @@ func (c *Client) handleMessage(ctx context.Context, m *Message) {
 }
 
 func (c *Client) handleAbout(ctx context.Context, m *Message) {
-	about := "✨ Daemon Bot ✨\n\n" +
+	about := "✨ *Daemon Bot* ✨\n\n" +
 		"Your daily companion for wisdom and inspiration.\n\n" +
-		"📖 What I do\n" +
-		"Once a day, I deliver a handpicked life quote straight to your chat -- no noise, just words worth reading\n\n" +
-		"⚡ Commands\n" +
-		"/subscribe -- Start receiving quotes\n" +
-		"/unsubscribe -- Pause anytime, no hard feelings\n\n" +
-		"/timezone -- Set your local timezone, no 3 AM pings\n\n" +
-		"/about -- You're here!\n\n" +
+		"📖 *What I do*\n" +
+		"Once a day, I deliver a handpicked life quote straight to your chat — _no noise, just words worth reading_.\n\n" +
+		"⚡ *Commands*\n" +
+		"/subscribe — Start receiving quotes\n" +
+		"/unsubscribe — Pause anytime, no hard feelings\n" +
+		"/timezone — Set your local timezone, _no 3 AM pings_\n" +
+		"/about — You're here!\n\n" +
 		"Built with ☕ and Go."
 
 	sendCtx, sendCancel := context.WithTimeout(ctx, 5*time.Second)
@@ -69,7 +70,7 @@ func (c *Client) handleStart(ctx context.Context, m *Message) {
 		log.Println("Error adding new user:", addNewUserErr)
 	}
 
-	welcomeMessage := "Hey " + m.Chat.FirstName + "!\n\nI am Daemon Bot. I send life quotes every 6 hours. If you would love that, feel free to subscribe to me to get started."
+	welcomeMessage := "Hey there!\n\nI am *Daemon Bot*. I send a handpicked life quote once a day. If you'd love that, tap *Subscribe* below — then run /timezone so I can hit the right hour for you."
 
 	// The Inline keyboard buttons to subscribe and unsubscribe
 	welcomeReplyMarkup := &ReplyMarkup{
@@ -175,7 +176,7 @@ func (c *Client) handleTimezone(ctx context.Context, m *Message) error {
 		return addNewUserErr
 	}
 
-	timezoneHandlerMessage := "🌍 Let's set your timezone" + "\nThis way I can send quotes at a reasonable hour wherever you are - no 3 AM pings." + "\n\nPick your region to get started:"
+	timezoneHandlerMessage := "🌍 *Let's set your timezone*\n\nSo I can send quotes at a sensible hour wherever you are — _no 3 AM pings_.\n\nPick your region to get started:"
 
 	timezonesReplyMarkup := &ReplyMarkup{
 		InlineKeyboard: [][]InlineKeyboardButton{
@@ -200,7 +201,8 @@ func (c *Client) handleTimezone(ctx context.Context, m *Message) error {
 }
 
 func (c *Client) handleTimezoneContinent(ctx context.Context, cbData string, m *Message) error {
-	timezoneContinentHandlerMessage := "Pick your timezone in " + strings.ToTitle(cbData) + ", or tap ← Back to change region."
+	continentTitle := strings.ToUpper(cbData[:1]) + cbData[1:]
+	timezoneContinentHandlerMessage := "Pick your timezone in *" + continentTitle + "*:"
 
 	var zones []string
 
@@ -298,7 +300,19 @@ func (c *Client) handleTimezoneSelect(ctx context.Context, cbData string, m *Mes
 }
 
 func (c *Client) replyUpdateTimezone(ctx context.Context, tz string, chatId int64) {
-	answerCallbackText := "✅ Timezone saved: " + tz + "\n\nNo more 3 AM pings - quotes will land at a reasonable local hour from now on. Run /timezone again anytime to change it."
+	loc, _ := time.LoadLocation(tz)
+	_, offset := time.Now().In(loc).Zone()
+
+	sendHourOffsetInMinutes := (offset / 60) % 60
+	offsetMinutesStr := strconv.Itoa(sendHourOffsetInMinutes)
+
+	if sendHourOffsetInMinutes < 10 {
+		offsetMinutesStr = "0" + offsetMinutesStr
+	}
+
+	userSendTime := strconv.Itoa(c.sendHour) + ":" + offsetMinutesStr
+
+	answerCallbackText := "✅ *Timezone saved:* `" + tz + "`\n\nNo more 3 AM pings — quotes will land at `" + userSendTime + "hrs` from now on. Run /timezone again to change it."
 
 	sendCtx, sendCancel := context.WithTimeout(ctx, 5*time.Second)
 
@@ -312,7 +326,7 @@ func (c *Client) replyUpdateTimezone(ctx context.Context, tz string, chatId int6
 }
 
 func (c *Client) replyTimezoneUpdateErr(ctx context.Context, chatId int64) {
-	answerCallbackText := "Couldn't save your timezone just now. Please try again in a moment."
+	answerCallbackText := "Couldn't save your timezone just now. Please try /timezone again in a moment."
 
 	sendCtx, sendCancel := context.WithTimeout(ctx, 5*time.Second)
 
@@ -376,9 +390,9 @@ func (c *Client) replySubscription(ctx context.Context, subscribed bool, chatId 
 	var answerCallbackText string
 
 	if subscribed {
-		answerCallbackText = "Thank you for subscribing! You will start receiving quotes every 6 hours. \n\nI hope you enjoy the journey."
+		answerCallbackText = "You're subscribed ✨\n\nYou'll get a life quote once a day. If you haven't already, run /timezone so I send it at a sensible local hour — _no 3 AM pings_."
 	} else {
-		answerCallbackText = "No problem, you can come back to subscribe whenever. \n\nI hope you have a good day!"
+		answerCallbackText = "Unsubscribed. No hard feelings — /subscribe again anytime."
 	}
 
 	sendCtx, sendCancel := context.WithTimeout(ctx, 5*time.Second)
@@ -396,9 +410,9 @@ func (c *Client) replySubscriptionChangeErr(ctx context.Context, subscribed bool
 	var answerCallbackText string
 
 	if subscribed {
-		answerCallbackText = "We were unable to subscribe you at the moment. Please try again later."
+		answerCallbackText = "Couldn't subscribe you right now. Please try again in a moment."
 	} else {
-		answerCallbackText = "We were unable to unsubscribe you at the moment. Please try again later."
+		answerCallbackText = "Couldn't unsubscribe you right now. Please try again in a moment."
 	}
 
 	sendCtx, sendCancel := context.WithTimeout(ctx, 5*time.Second)
@@ -417,6 +431,7 @@ func (c *Client) HandleSend(ctx context.Context, chatId int64, text string, repl
 		ChatID:      chatId,
 		Text:        text,
 		ReplyMarkup: replyMarkup,
+		ParseMode:   "Markdown",
 	}
 
 	messageJson, marshalErr := json.Marshal(message)
