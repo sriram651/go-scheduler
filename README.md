@@ -19,7 +19,7 @@ This service:
 -   Falls back to a configurable default quote on fetch failure
 -   Sends messages using the Telegram Bot API
 -   Listens for Telegram updates via long-polling
--   Handles `/start`, `/subscribe`, `/unsubscribe`, and `/about` commands
+-   Handles `/start`, `/subscribe`, `/unsubscribe`, `/timezone`, and `/about` commands
 -   Routes callback queries (Subscribe / Unsubscribe)
 -   Registers new users in PostgreSQL on `/start` (upsert — safe to repeat)
 -   Persists subscription state in the database
@@ -127,7 +127,8 @@ Before running the service, run the following in your PostgreSQL database:
         chat_id    BIGINT  PRIMARY KEY,
         first_name TEXT    NOT NULL,
         username   TEXT,
-        subscribed BOOLEAN NOT NULL DEFAULT false
+        subscribed BOOLEAN NOT NULL DEFAULT false,
+        timezone   TEXT
     );
 
     CREATE TABLE bot_config (
@@ -136,11 +137,13 @@ Before running the service, run the following in your PostgreSQL database:
     );
 
     INSERT INTO bot_config (key, value) VALUES ('telegram_offset', '0');
+    INSERT INTO bot_config (key, value) VALUES ('send_hour', '9');
 
 - `chat_id` is the Telegram chat ID — used as the primary key and the conflict target for upserts.
 - `username` is nullable — not all Telegram users have a username set.
 - `subscribed` defaults to `false` on insert; updated via the Subscribe / Unsubscribe inline buttons.
-- `bot_config` stores runtime state that must survive restarts. The `telegram_offset` row tracks the last processed Telegram update ID to prevent message replay.
+- `timezone` is nullable — stores the user's IANA zone (e.g. `Asia/Kolkata`) set via `/timezone`. Users who haven't set one fall back to UTC.
+- `bot_config` stores runtime state that must survive restarts. The `telegram_offset` row tracks the last processed Telegram update ID to prevent message replay. The `send_hour` row holds the global hour (0–23) at which each user receives their quote in their local timezone.
 
 > **The `INSERT INTO bot_config` line is required.** If the `telegram_offset` row is missing, the service will log a warning at startup and continue running, but offset persistence will be silently broken — `UPDATE` with no matching row affects 0 rows. The symptom: Telegram messages may replay on every restart.
 
@@ -206,6 +209,7 @@ On Telegram message received:
 -   Routes to the appropriate handler
 -   `/start` registers the user and replies with a welcome message and inline keyboard
 -   `/subscribe` and `/unsubscribe` update subscription state directly — no need to go through `/start`
+-   `/timezone` opens a two-level inline keyboard (continent → zone) and persists the user's IANA timezone
 -   `/about` replies with a description of the bot and available commands
 -   Subscribe / Unsubscribe inline button callbacks also update subscription state
 -   Each processed update saves the new offset to DB
@@ -271,7 +275,7 @@ Encapsulates:
 -   Long-polling via `StartPolling(ctx)` — routes updates to handlers
 -   `HandleSend(ctx, chatId, text, replyMarkup)` — sends messages
 -   `handleMessage` / `handleCallback` — command and button routing
--   `/start` triggers user upsert; `/subscribe`, `/unsubscribe` update subscription directly; `/about` describes the bot
+-   `/start` triggers user upsert; `/subscribe`, `/unsubscribe` update subscription directly; `/timezone` sets the user's IANA timezone via a two-level picker; `/about` describes the bot
 -   Saves update offset to DB after each processed update
 
 ### Execution Model
@@ -302,7 +306,7 @@ See [DEPLOY.md](DEPLOY.md) for the full deployment guide.
 -   PostgreSQL-backed user registration and subscription management
 -   Broadcast targets fetched from the database at runtime
 -   Telegram update offset persisted — no stale replays on restart
--   Interactive Telegram commands via long-polling (`/start`, `/subscribe`, `/unsubscribe`, `/about`, callbacks)
+-   Interactive Telegram commands via long-polling (`/start`, `/subscribe`, `/unsubscribe`, `/timezone`, `/about`, callbacks)
 -   External quote API with fallback
 -   No retry policy
 -   No multi-job configuration
