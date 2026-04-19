@@ -16,7 +16,7 @@ go build -o go-scheduler ./cmd/scheduler/
 ./go-scheduler --schedule "@every 30s"
 ```
 
-**Run (default schedule — every 6 hours):**
+**Run (default schedule — every hour):**
 ```sh
 ./go-scheduler
 ```
