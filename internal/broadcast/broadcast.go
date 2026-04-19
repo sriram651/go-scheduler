@@ -52,7 +52,7 @@ func (b *Broadcast) Run(ctx context.Context, nowUTC time.Time) {
 		broadcastMessage = b.Quote.DefaultQuote
 	}
 
-	subscribedUsers, getSubscribedUsersErr := db.GetUsersForHour(ctx, b.Database, nowUTC, b.sendHour)
+	subscribedUsers, getSubscribedUsersErr := db.GetSubscribedUsersForHour(ctx, b.Database, nowUTC, b.sendHour)
 
 	if getSubscribedUsersErr != nil {
 		log.Println("❌ Cron failed — could not fetch subscribed users:", getSubscribedUsersErr)
