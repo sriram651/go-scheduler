@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"log"
+	"time"
 
 	"github.com/sriram651/go-scheduler/internal/broadcast"
 	"github.com/sriram651/go-scheduler/internal/config"
@@ -60,7 +61,7 @@ func (a *App) Start(ctx context.Context) {
 	go a.Telegram.StartPolling(ctx)
 
 	// Start scheduler service and send in the broadcast run
-	go a.Scheduler.Start(ctx, func() { a.Broadcast.Run(ctx) })
+	go a.Scheduler.Start(ctx, func() { a.Broadcast.Run(ctx, time.Now().UTC()) })
 
 	<-ctx.Done()
 }
