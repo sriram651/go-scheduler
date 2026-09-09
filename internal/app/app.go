@@ -29,7 +29,7 @@ func New(cfg config.Config) *App {
 	telegramClient := telegram.NewClient(cfg.TelegramBaseURL, cfg.TelegramToken, cfg.TelegramPollTimeout, databaseClient)
 	schedulerClient := scheduler.New(cfg.Schedule)
 
-	quoteClient := quote.NewClient(cfg.QuotesBaseURL, cfg.DefaultQuote)
+	quoteClient := quote.NewClient(cfg.QuotesBaseURL, cfg.QuotesApiKey, cfg.DefaultQuote)
 	broadcastClient := broadcast.NewClient(quoteClient, telegramClient, databaseClient)
 
 	return &App{

@@ -8,13 +8,15 @@ import (
 type Client struct {
 	Client       *http.Client
 	QuoteBaseURL string
+	QuotesApiKey string
 	DefaultQuote string
 }
 
-func NewClient(quotesBaseURL string, defaultQuote string) *Client {
+func NewClient(quotesBaseURL string, quoteApiKey string, defaultQuote string) *Client {
 	return &Client{
 		Client:       &http.Client{Timeout: 5 * time.Second},
 		QuoteBaseURL: quotesBaseURL,
+		QuotesApiKey: quoteApiKey,
 		DefaultQuote: defaultQuote,
 	}
 }

@@ -14,6 +14,7 @@ type Config struct {
 	TelegramToken       string
 	TelegramPollTimeout time.Duration
 	QuotesBaseURL       string
+	QuotesApiKey        string
 	DefaultQuote        string
 	Schedule            string
 
@@ -38,6 +39,7 @@ func LoadConfig() Config {
 		TelegramBaseURL:     os.Getenv("TG_API_BASE_URL"),
 		TelegramPollTimeout: time.Second * 65,
 		QuotesBaseURL:       os.Getenv("QUOTE_API_URL"),
+		QuotesApiKey:        os.Getenv("QUOTE_API_KEY"),
 		Schedule:            schedule,
 		DefaultQuote:        os.Getenv("DEFAULT_QUOTE"),
 		DatabaseURL:         os.Getenv("DATABASE_URL"),
