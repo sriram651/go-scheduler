@@ -102,7 +102,8 @@ Create a `.env` file (excluded via `.gitignore`):
 
     TG_BOT_TOKEN=123456:ABCDEF...
     TG_API_BASE_URL=https://api.telegram.org/bot
-    QUOTE_API_URL=https://your-quote-api.com/api/random
+    QUOTE_API_URL=https://api.api-ninjas.com/v2/randomquotes
+    QUOTE_API_KEY=your_quote_api_key_here
     DEFAULT_QUOTE=Keep pushing forward, no matter what challenges you face.
     DATABASE_URL=postgres://user:password@host:5432/dbname
 
@@ -111,11 +112,18 @@ Or export them manually:
     export TG_BOT_TOKEN=...
     export TG_API_BASE_URL=https://api.telegram.org/bot
     export QUOTE_API_URL=...
+    export QUOTE_API_KEY=...
     export DEFAULT_QUOTE=...
     export DATABASE_URL=...
 
-`TG_BOT_TOKEN`, `QUOTE_API_URL`, and `DATABASE_URL` are required. The service
-exits on startup if any are missing.
+`TG_BOT_TOKEN`, `QUOTE_API_URL`, `QUOTE_API_KEY`, and `DATABASE_URL` are all
+required.
+
+> **There is no startup validation yet** (`config.go` still carries a
+> `TODO: ENV Vars validation`). A missing or invalid `QUOTE_API_KEY` will not
+> stop the service. The quote fetch fails, every subscriber silently receives
+> `DEFAULT_QUOTE`, and the cron run still logs as successful. Confirm the key
+> is set after any deploy or secret rotation.
 
 ------------------------------------------------------------------------
 

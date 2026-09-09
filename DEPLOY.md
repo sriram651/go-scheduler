@@ -63,11 +63,18 @@ INSERT INTO bot_config (key, value) VALUES ('telegram_offset', '0');
 
     flyctl secrets set TG_BOT_TOKEN=your_tg_bot_token_here
     flyctl secrets set TG_API_BASE_URL=https://api.telegram.org/bot
-    flyctl secrets set QUOTE_API_URL=https://your-quote-api.com/api/random
+    flyctl secrets set QUOTE_API_URL=https://api.api-ninjas.com/v2/randomquotes
+    flyctl secrets set QUOTE_API_KEY=your_quote_api_key_here
     flyctl secrets set DEFAULT_QUOTE="Your fallback quote here."
     flyctl secrets set DATABASE_URL="postgres://user:password@host:5432/dbname?sslmode=require"
 
 > Secrets live only in Fly.io and are never committed to git.
+
+> **`QUOTE_API_KEY` is required and is not validated at startup.** If it is
+> missing or wrong, the app boots normally, the quote API rejects the request,
+> and every subscriber receives `DEFAULT_QUOTE` while the logs still report
+> `✅ Cron successful`. After deploying, check `flyctl logs` for a real quote
+> rather than assuming a clean boot means it works.
 
 ### 5. Deploy
 

@@ -30,7 +30,11 @@ go vet ./...
 
 ## Environment Setup
 
-Copy `.env.example` to `.env` and fill in values. Required: `TG_BOT_TOKEN`, `QUOTE_API_URL`, `DATABASE_URL`. Optional: `TG_API_BASE_URL` (defaults to Telegram API), `DEFAULT_QUOTE` (fallback text).
+Copy `.env.example` to `.env` and fill in values. Required: `TG_BOT_TOKEN`, `QUOTE_API_URL`, `QUOTE_API_KEY`, `DATABASE_URL`. Optional: `TG_API_BASE_URL` (defaults to Telegram API), `DEFAULT_QUOTE` (fallback text).
+
+The quote provider is API Ninjas (`https://api.api-ninjas.com/v2/randomquotes`). It authenticates via an `x-api-key` header and returns a JSON **array** of `{quote, author}` objects, not a single object.
+
+Nothing validates env vars at startup (`config.go` has a `TODO: ENV Vars validation`). A missing `QUOTE_API_KEY` is silent: the fetch fails, everyone gets `DEFAULT_QUOTE`, and the run still logs `✅ Cron successful`.
 
 ## Database Setup
 
